@@ -1,4 +1,6 @@
-# Paquets a instal.lar/carregar
+# TFG Carlos Closa
+# Paquets a instal.lar/carregar 
+
 pckgs<-c("shiny","shinyjs","shinythemes","shinydashboard", "ggthemes",
          "tidyverse","XML","wordcloud","tm","slam","diptest","DT","gplots")
 pckgs2Install<-pckgs[!(pckgs %in% library()$results[,1])]
