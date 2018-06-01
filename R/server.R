@@ -1,4 +1,9 @@
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
+  
+  session$onSessionEnded(function() {
+    stopApp()
+  })
+  
   #Data selection
   dfActions <- NULL
   dfMilestonesDef <- NULL 
@@ -74,8 +79,8 @@ shinyServer(function(input, output) {
     if(is.null(dfStudents())) return(NULL)
     plotDistribution(dfStudents()$time_on_task, xlabel="Time on Task (in minutes)")
   })
-  output$toT_text1 <- renderPrint({
-    if(is.null(dfStudents())) return(NULL)
+  output$toT_text1 <- renderText({
+    if(is.null(dfStudents())) return("")
     str1 <- paste("Distribution of the time on task spent by student. 
                   A histogram and an estimate of the density curve are presented.")
     str2 <- paste("The mean of this distribution is", 
@@ -101,8 +106,8 @@ shinyServer(function(input, output) {
     if(is.null(dfStudents())) return(NULL)
     plotDistribution(dfStudents()$n_actions, xlabel="Number of Actions")
   })
-  output$nActions_text1 <- renderPrint({
-    if(is.null(dfStudents())) return(NULL)
+  output$nActions_text1 <- renderText({
+    if(is.null(dfStudents())) return("")
     str1 <- paste("Distribution of the number of actions done by student. 
                   A histogram and an estimate of the density curve are presented.")
     str2 <- paste("The mean of this distribution is", 
@@ -141,7 +146,7 @@ shinyServer(function(input, output) {
   })
 
   output$plot_pointsnAct <- renderText({
-    if(is.null(dfStudents())) return(NULL)
+    if(is.null(dfStudents())) return("")
     
     if(input$checkbox)  {dat <- data.frame(ids=dfStudents()$user)} 
     else {dat <- data.frame(ids=dfStudents()$filename)}
@@ -167,7 +172,8 @@ shinyServer(function(input, output) {
   output$tei_graph<- renderPlot({
     if(is.null(dfActions())) return(NULL)
     l <- rcmdrtrTimeEventsPerId(time = dfActions()$time, ids = 
-                                  (if(input$checkbox) dfActions()$user else dfActions()$filename))
+        (if(input$checkbox) dfActions()$user else dfActions()$filename),
+        sessions = dfActions()$session)
     
     punts <- l[[1]]
     linea <- l[[2]]
@@ -187,9 +193,10 @@ shinyServer(function(input, output) {
   })
   
   output$plot_points <- renderText({
-    if(is.null(dfActions())) return(NULL)
+    if(is.null(dfActions())) return("")
     dat <- rcmdrtrTimeEventsPerId(time = dfActions()$time, ids = 
-                                    (if(input$checkbox) dfActions()$user else dfActions()$filename))
+                                    (if(input$checkbox) dfActions()$user else dfActions()$filename),
+                                    sessions = dfActions()$session)
     res <- nearPoints(dat[[1]], input$plot_hover,
                       threshold = 5, maxpoints = 100,
                       addDist = TRUE)
@@ -241,8 +248,8 @@ shinyServer(function(input, output) {
     gradeDistribution(dfStudentsMilestonesEv()$grades)
     
   })
-  output$gradedistr_text1 <- renderPrint({
-    if(is.null(dfStudentsMilestonesEv())) return(NULL)
+  output$gradedistr_text1 <- renderText({
+    if(is.null(dfStudentsMilestonesEv())) return("")
     
     str1 <- paste("The mean of this distribution is", 
                   round(mean(dfStudentsMilestonesEv()$grades), 2),
@@ -274,7 +281,7 @@ shinyServer(function(input, output) {
   })
   
   output$plot_pointsnActionsVStoTVSgrade <- renderText({
-    if(is.null(dfStudentsMilestonesEv())|is.null(dfStudents())) return(NULL)
+    if(is.null(dfStudentsMilestonesEv())|is.null(dfStudents())) return("")
     
     if(input$checkbox) {ids = "user"} else {ids = "filename"}
     dat <- merge(x = dfStudents(), y = dfStudentsMilestonesEv(), by.x = ids, by.y = "student")
@@ -324,8 +331,8 @@ shinyServer(function(input, output) {
                      options = list(pageLength = 50)))
   })
   
-  output$studentanalysis_text <- renderPrint({
-    if(is.null(dfStudentsMilestonesEv())&is.null(dfStudents())) return(NULL)
+  output$studentanalysis_text <- renderText({
+    if(is.null(dfStudentsMilestonesEv())&is.null(dfStudents())) return("")
     
     if(is.null(dfStudentsMilestonesEv())) {
       df2 <- dfStudents()

@@ -1,7 +1,7 @@
+timeLimit <- 300 #5-minutes and longer stops are discounted
+
 #Import actions
 importStudentData <- function(filesImport,names = NULL) {
-  
-  timeLimit <- 300 #5-minutes and longer stops are discounted
   
   # Importar els fitxers
   vecXMLActions<-NULL
@@ -763,29 +763,32 @@ plotDistribution <- function(time=NA,maxTime=NULL,xlabel="") {
   ghist
 }
 
-rcmdrtrTimeEventsPerId <- function(time=NA,ids=NA,colorsScale=NULL,timeLimit=Inf) {
-  if(is.null(time)|is.null(ids)) return(NULL)
+rcmdrtrTimeEventsPerId <- function(time=NA,ids=NA,sessions=NA,colorsScale=NULL) {
+  if(is.null(time)|is.null(ids)|is.null(sessions)) return(NULL)
   
   uniqueIds<-unique(as.character(ids))
-  ordering<-order(ids,time)
+  ordering<-order(as.character(ids),as.character(sessions),as.character(time))
   
   time<-time[ordering]
+  sessions <- sessions[ordering]
   ids<-ids[ordering]
   
   RealTime<-rep(0,length(time))
   
   for(i in 2:length(time)) {
-    if(ids[i]==ids[i-1]) {
+    if(as.character(ids[i])==as.character(ids[i-1])) {
       thisTime<-as.numeric(as.POSIXct(as.character(time[i]),
                                       format="%Y%m%d%H%M%OS"))
       previousTime<-as.numeric(as.POSIXct(as.character(time[i-1]),
                                           format="%Y%m%d%H%M%OS"))
-      diffTime<-(thisTime-previousTime)/60
+      diffTime <- thisTime-previousTime
       
-      RealTime[i]<-ifelse(diffTime>timeLimit,0,diffTime)+RealTime[i-1]
+      RealTime[i]<-ifelse(diffTime > timeLimit |
+        as.character(sessions[i])!=as.character(sessions[i-1]), 0, diffTime/60) +
+        RealTime[i-1]
     } else {
       diffTime<-NA
-      RealTime[i]<-0
+      RealTime[i] <- 0
     }
   }
   
@@ -820,17 +823,19 @@ drawPlotActionPoints <- function (punts, linea, maxTime) {
 drawCommandsWordCloud <- function(xmls) {
   if(is.null(xmls)) return(NULL)
   
-  regs<-regexec("name='Command' value='([a-zA-Z.0-9_]*)[(]",xmls)
+  xmls <<- xmls
+  xmls1<-gsub("value='with(?:[(]|%28)[^,%]*(?:,|%2C)%20","value='",xmls)
+  regs<-regexec("name='Command' value='([a-zA-Z.0-9_]*)(?:[(]|%28)",xmls1)
   start<-sapply(regs,function(x){x[2]})
   length<-sapply(regs,function(x){attr(x,"match.length")[2]})
-  cmd<-sapply(substr(xmls,start,start+length-1),function(x) {URLdecode(x)})
+  cmd<-sapply(substr(xmls1,start,start+length-1),function(x) {URLdecode(x)})
   names(cmd)<-NULL
   
   corpus_cmd<-VCorpus(VectorSource(cmd[!is.na(cmd)]))
   tdm<-TermDocumentMatrix(corpus_cmd)
   return(wordcloud(Terms(tdm),row_sums(tdm),min.freq=1,
-                   max.words=50,rot.per=0,fixed.asp=FALSE, 
-                   random.order=F, colors=brewer.pal(8, "Dark2")))
+         max.words=50,rot.per=0,fixed.asp=FALSE, 
+         random.order=F, colors=brewer.pal(8, "Dark2")))
 }
 
 #With milestones.
