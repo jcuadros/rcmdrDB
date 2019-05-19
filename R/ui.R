@@ -1,6 +1,7 @@
 # Paquets a instal.lar/carregar
-pckgs<-c("shiny","shinyjs","shinythemes","shinydashboard", "ggthemes",
-         "tidyverse","XML","wordcloud","tm","slam","diptest","DT","gplots")
+pckgs<-c("shiny","shinyjs","shinythemes", "ggthemes","ggrepel",
+         "igraph","scales","GGally","network","sna","DescTools",
+         "tidyverse","XML","wordcloud","tm","slam","DT","Rcpp")
 pckgs2Install<-pckgs[!(pckgs %in% library()$results[,1])]
 pckgs2Load<-pckgs[!(pckgs %in% (.packages()))]
 for(pckg in pckgs2Install) {install.packages(pckg)}
@@ -21,7 +22,7 @@ shinyUI(fluidPage(
                             tags$b(h4("Data Input")),
                             checkboxInput("checkbox", "Analyse per User (unselect to analyse per filename)", FALSE),
                             fileInput('logsImport', 'Log Files', multiple=TRUE),
-                            fileInput('obsMilestonesImport', 'Observational Milestones (optional)',
+                            fileInput('obsMilestonesImport', 'Observation Items (optional)',
                                       accept=c('text/plain', '.txt')),
                             fileInput('evMilestonesImport', 'Evaluation Milestones (optional)',
                                       accept=c('text/plain', '.txt'))
@@ -79,9 +80,9 @@ shinyUI(fluidPage(
                         widths = c(2, 10)
                       )
              ),
-             tabPanel("Observation Milestones",
+             tabPanel("Observation Items",
                       navlistPanel(
-                        tabPanel("Average per Milestone",
+                        tabPanel("Average per Item",
                                  fluidPage(
                                    verticalLayout(
                                      plotOutput("proportionbars")
@@ -92,6 +93,27 @@ shinyUI(fluidPage(
                                  fluidPage(
                                    verticalLayout(
                                      plotOutput("heatmap")
+                                   )
+                                 )
+                        ),
+                        tabPanel("Observation Items over Time",
+                                 fluidPage(
+                                   verticalLayout(
+                                     plotOutput("oITime")
+                                   )
+                                 )
+                        ),
+                        tabPanel("Observation Items Sequence",
+                                 fluidPage(
+                                   verticalLayout(
+                                     plotOutput("oISequence")
+                                   )
+                                 )
+                        ),
+                        tabPanel("Paths Analysis",
+                                 fluidPage(
+                                   verticalLayout(
+                                     plotOutput("oIPaths")
                                    )
                                  )
                         ),

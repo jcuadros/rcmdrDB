@@ -16,9 +16,14 @@ shinyServer(function(input, output, session) {
   })
   
   #No Milestones
-  dfUsers <- reactive({generatedfUsers(dfActions())})
-  dfFiles <- reactive ({generatedfFiles(dfActions())})
-  dfStudents <- reactive({if(input$checkbox) dfUsers() else dfFiles()})
+  # dfUsers <- reactive({generatedfUsers(dfActions())})
+  # dfFiles <- reactive ({generatedfFiles(dfActions())})
+  dfStudents <- reactive({
+    if(input$checkbox) {
+      generatedfUsers(dfActions())
+    } else {
+      generatedfFiles(dfActions())
+    }})
   
   #Yes Milestones
   dfMilestonesDef<-reactive({
@@ -27,12 +32,20 @@ shinyServer(function(input, output, session) {
       return(read.table(inFile$datapath, header=TRUE, sep="\t", quote=""))
   })
   
-  dfUsersMilestones <- reactive ({generatedfUsersMilestones(dfActions(), dfMilestonesDef())})
-  dfFilesMilestones <- reactive ({generatedfFilesMilestones(dfActions(), dfMilestonesDef())})
+  dfActionsMilestones <- reactive({
+    inFile <- input$obsMilestonesImport
+    if (is.null(inFile)) return(NULL) else
+      generatedfActionsMilestones(dfActions(), dfMilestonesDef())
+  })
+  
   dfStudentsMilestones <- reactive({
     inFile <- input$obsMilestonesImport
     if (is.null(inFile)) return(NULL) else
-      if(input$checkbox) dfUsersMilestones() else dfFilesMilestones()
+      if(input$checkbox) {
+        generatedfUsersMilestones(dfActionsMilestones(), dfMilestonesDef())
+      } else {
+        generatedfFilesMilestones(dfActionsMilestones(), dfMilestonesDef())
+      }
   })
   
   dfMilestonesEvDef<-reactive({
@@ -40,9 +53,40 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile)) return(NULL) else
       return(read.table(inFile$datapath, header=TRUE, sep="\t", quote=""))
   })
+  
   dfStudentsMilestonesEv <- reactive({
     generatedStudentsMilestonesEv(dfStudentsMilestones(),dfMilestonesEvDef())
   })
+  
+  dfOIColors <- reactive({
+    getdfOIColors(dfMilestonesDef(),dfMilestonesEvDef())
+  })
+  
+  dfObsItemsLong <- reactive({
+    dfObsLong <- dfActionsMilestones()
+    if(is.null(dfObsLong)) return(NULL)
+    
+    if(input$checkbox) 
+      dfObsLong <- rename(dfObsLong,student=user) %>% select(-filename)
+    else
+      dfObsLong <- rename(dfObsLong,student=filename) %>% select(-user)
+    
+    dfObsLong <- dfObsLong %>% 
+      select(-application,-action,-session,-type,-param_name,-xml,
+             -param_value,-diff_time,-xml_cum) %>% 
+      gather("milestone","check",-(1:5)) %>% filter(check==TRUE) %>% 
+      select(-check)
+    dfObsLong <- dfObsLong %>% arrange(student,number)
+    
+    dfObsLong$numMil <- 1
+    for(i in 2:nrow(dfObsLong)) {
+      dfObsLong$numMil[i] <- 
+        ifelse(dfObsLong$student[i]==dfObsLong$student[i-1],
+               dfObsLong$numMil[i-1]+1,1)
+    }
+    dfObsLong
+  })
+  
   
   #Data input.
   output$studentData <- renderText({
@@ -215,7 +259,7 @@ shinyServer(function(input, output, session) {
   })
   
   
-  #Observation Milestones
+  #Observation Items
   #Proportion bar diagram
   output$proportionbars <- renderPlot ({
     if(is.null(dfStudentsMilestones())) return(NULL)
@@ -226,6 +270,116 @@ shinyServer(function(input, output, session) {
   output$heatmap <- renderPlot({
     if(is.null(dfStudentsMilestones())) return(NULL)
     rcmdrtrHeatMapAchievedMilestonePerId(dfStudentsMilestones(),labels=NULL)
+  })
+  
+  #Observation Items over Time
+  output$oITime <- renderPlot({
+    dfObsLong <- dfObsItemsLong()
+    if(is.null(dfObsLong)) return(NULL)
+    
+    if(input$checkbox)
+      sortedStudents <- dfStudents() %>% group_by(user) %>% 
+        summarise(maxTot=max(time_on_task)) %>% arrange(maxTot) %>% 
+        rename(student=user)
+    else
+      sortedStudents <- dfStudents() %>% group_by(filename) %>% 
+        summarise(maxTot=max(time_on_task)) %>% arrange(maxTot) %>% 
+        rename(student=filename)
+    
+    dfObsLong$studentOF <-factor(dfObsLong$student, levels=sortedStudents$student)
+    
+    dfObsLong$timeOnTaskR <- as.POSIXct(strptime(format(as.POSIXct("1990-1-1")+dfObsLong$diff_time_cum_real,"%H:%M:%S"),format="%H:%M:%S"))
+    dfObsLong$timeOnTask <- as.POSIXct(strptime(format(as.POSIXct("1990-1-1")+dfObsLong$diff_time_cum,"%H:%M:%S"),format="%H:%M:%S"))
+    
+    dfObsItemsEvMilest <- dfOIColors()
+    dfObsItemsEvMilest$exist <- dfObsItemsEvMilest$item %in% unique(dfObsLong$milestone)
+    dfObsLong <- droplevels(dfObsLong)
+    
+    ggplot(dfObsLong,aes(x=timeOnTask,y=studentOF,fill=milestone,label=milestone)) + 
+      geom_point(shape=25,size=3.5,color="black", position=position_nudge(y=-0.15),alpha=0.8)+
+      theme_classic() +
+      geom_hline(yintercept=seq(1.5, length(unique(dfObsLong$studentOF))-0.5, 1), lwd=.5, colour="black", linetype="dashed") +
+      theme(legend.position = "none") +
+      scale_fill_manual(values=as.character(dfObsItemsEvMilest$colorMil[dfObsItemsEvMilest$exist]))+
+      labs(y=NULL, x="Time from Activity Start")+
+      geom_text_repel(size=3, direction="x", nudge_y=.2, box.padding=0.01,
+                      segment.color=NA, force = 0.1) +
+      scale_x_datetime(labels = scales::date_format("%H:%M",tz=Sys.timezone()))+
+      scale_y_discrete(limits=rev(levels(dfObsLong$studentOF)))
+  })
+    
+  #Observation Items Sequence
+  output$oISequence <- renderPlot({
+    dfObsLong <- dfObsItemsLong()
+    if(is.null(dfObsLong)) return(NULL)
+    
+    if(input$checkbox)
+      sortedStudents <- dfStudents() %>% group_by(user) %>% 
+        summarise(maxTot=max(time_on_task)) %>% arrange(maxTot) %>% 
+        rename(student=user)
+    else
+      sortedStudents <- dfStudents() %>% group_by(filename) %>% 
+        summarise(maxTot=max(time_on_task)) %>% arrange(maxTot) %>% 
+        rename(student=filename)
+      
+    dfObsLong$studentOF <-factor(dfObsLong$student, levels=sortedStudents$student)
+    
+    dfObsItemsEvMilest <- dfOIColors()
+    dfObsItemsEvMilest$exist <- dfObsItemsEvMilest$item %in% unique(dfObsLong$milestone)
+    dfObsLong <- droplevels(dfObsLong)
+    
+    ggplot(dfObsLong, aes(y=studentOF,x=numMil,label=milestone,fill=milestone,color=milestone)) +
+      geom_tile(color="black", width=.9,height=.8)+geom_text(size=3)+theme_classic()+
+      theme(legend.position = "none",
+            axis.title.x = element_blank(),axis.text.x = element_blank(),
+            axis.ticks.x = element_blank(),axis.title.y = element_blank())+
+      scale_fill_manual(values=as.character(dfObsItemsEvMilest$colorMil[dfObsItemsEvMilest$exist]))+
+      scale_color_manual(values=as.character(dfObsItemsEvMilest$colorInk[dfObsItemsEvMilest$exist]))+
+      scale_y_discrete(limits=rev(levels(dfObsLong$studentOF)))
+  })  
+  
+  #Paths Analysis
+  output$oIPaths <- renderPlot({
+    dfObsLong <- dfObsItemsLong()
+    if(is.null(dfObsLong)) return(NULL)
+    
+    dfObsItemsEvMilest <- dfOIColors()
+    dfObsItemsEvMilest$exist <- dfObsItemsEvMilest$item %in% unique(dfObsLong$milestone)
+
+    dfStPathsRep <- dfObsLong %>% group_by(student) %>% 
+      summarise(path=paste(milestone, collapse=" "))
+    
+    paths <- paste("STA",as.character(na.omit(dfStPathsRep$path)),"END")
+    numItems <- nrow(dfMilestonesDef()) + 2
+    itemsGraph <- c("STA", as.character(dfMilestonesDef()$milNames), "END")
+    
+    adjm<-as.data.frame(matrix(0,nrow=numItems,ncol=numItems))
+    rownames(adjm)<-itemsGraph
+    colnames(adjm)<-itemsGraph
+    
+    pathList <- paste(paths, collapse=" // ")
+    for (i in seq(numItems)) {
+      for (j in seq(numItems)) {
+        adjm[i,j] <- (nchar(pathList) -
+                        nchar(gsub(paste(itemsGraph[i], itemsGraph[j]),"",pathList))) /
+          nchar(paste(itemsGraph[i], itemsGraph[j]))
+      }
+    }
+    
+    netw <- network(adjm/sum(adjm)*100,matrix.type="adjacency",directed=T,loops = F,
+                    ignore.eval=FALSE, names.eval="weights")
+    set.edge.attribute(netw, "color", ifelse(netw %e% "weights" > 1, "black",
+                                             ifelse(netw %e% "weights" > .1, "grey70", "grey90")))
+    
+    nodeTimes <- pmax(apply(adjm,2,sum),apply(adjm,1,sum)) # max(in-degree,out-degree)
+    nodeSize <- 8 + (30-8) *(nodeTimes - min(nodeTimes))/(max(nodeTimes)-min(nodeTimes))
+
+    ggnet2(netw, size = 0, edge.size = "weights", edge.color = "color", edge.alpha = 1,
+                    arrow.size = 6,  arrow.gap = 0.03, mode="circle") +
+      geom_point(color = c("black",as.character(dfObsItemsEvMilest$colorMil),"black"), size=nodeSize, alpha=0.5)+
+      geom_point(color = c("black",as.character(dfObsItemsEvMilest$colorMil),"black"), size=8, alpha=0.8)+
+      geom_text(aes(label=label),size=3, color = c("white",as.character(dfObsItemsEvMilest$colorInk),"white"))
+  
   })
   
   
