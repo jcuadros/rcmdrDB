@@ -6,7 +6,7 @@ pckgs2Load<-pckgs[!(pckgs %in% (.packages()))]
 for(pckg in pckgs2Install) {install.packages(pckg,repos="https://cloud.r-project.org/")}
 for(pckg in pckgs2Load) {library(pckg,character.only = TRUE)}
 
-source("dashboard_functions.R")
+source("dashboard_functions.R")  
 
 shinyUI(fluidPage(
   navbarPage("",
