@@ -3,7 +3,7 @@ pckgs<-c("shiny","shinyjs","shinythemes","shinydashboard", "ggthemes",
          "tidyverse","XML","wordcloud","tm","slam","diptest","DT","gplots")
 pckgs2Install<-pckgs[!(pckgs %in% library()$results[,1])]
 pckgs2Load<-pckgs[!(pckgs %in% (.packages()))]
-for(pckg in pckgs2Install) {install.packages(pckg)}
+for(pckg in pckgs2Install) {install.packages(pckg,repos="https://cloud.r-project.org/")}
 for(pckg in pckgs2Load) {library(pckg,character.only = TRUE)}
 
 source("dashboard_functions.R")
