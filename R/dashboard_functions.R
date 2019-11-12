@@ -1,5 +1,9 @@
 timeLimit <- 300 #5-minutes and longer stops are discounted
 
+#From https://gist.github.com/jimhester/6355622#file-read-file-cpp
+#Suggested from https://gist.github.com/hadley/6353939
+sourceCpp("readFile.cpp")
+
 #Import actions
 importStudentData <- function(filesImport,names = NULL) {
   
@@ -8,7 +12,11 @@ importStudentData <- function(filesImport,names = NULL) {
   vecFileNames<-NULL
   
   for(i in 1:length(filesImport)) {
-    lines<-readLines(filesImport[i])
+    # lines<-readLines(filesImport[i])
+    lines<-read_file_cpp2(filesImport[i])
+    lines<-gsub("\r","\n",lines)
+    lines<-gsub("\n\n","\n",lines)
+    lines<-unlist(strsplit(lines,"\n"))
     vecFileNames<-c(vecFileNames,rep(
       if(is.null(names)) filesImport[i] else names[i],length(lines)))
     vecXMLActions<-c(vecXMLActions,lines)
@@ -58,9 +66,11 @@ importStudentData <- function(filesImport,names = NULL) {
   vecDiffTime<-rep(NA,numActions)
   vecDiffTimeCum<-rep(0, numActions)
   vecDiffTimeCumReal<-rep(0, numActions)
-  vecXMLCum<-rep(NA, numActions)
   
-  vecXMLCum[1]<-as.character(dfActionsSorted[1,"xml"])
+  # Do not accumulate XML
+  # vecXMLCum<-rep(NA, numActions)
+  # vecXMLCum[1]<-as.character(dfActionsSorted[1,"xml"])
+  vecXMLCum<-as.character(dfActionsSorted[,"xml"])
   
   for(i in 2:numActions) {
     
@@ -75,12 +85,12 @@ importStudentData <- function(filesImport,names = NULL) {
       
       vecDiffTimeCum[i]<-vecDiffTime[i]+vecDiffTimeCum[i-1]
       vecDiffTimeCumReal[i]<-ifelse(vecDiffTime[i]>timeLimit,0,vecDiffTime[i])+vecDiffTimeCumReal[i-1]
-      vecXMLCum[i]<-paste(vecXMLCum[i-1],as.character(dfActionsSorted[i,"xml"]),sep="")
+      # vecXMLCum[i]<-paste(vecXMLCum[i-1],as.character(dfActionsSorted[i,"xml"]),sep="")
     } else {
       vecDiffTime[i]<-NA
       vecDiffTimeCum[i]<-0
       vecDiffTimeCumReal[i]<-0
-      vecXMLCum[i]<-as.character(dfActionsSorted[i,"xml"])
+      # vecXMLCum[i]<-as.character(dfActionsSorted[i,"xml"])
     }
   }
   
@@ -278,7 +288,7 @@ generatedfUsers <- function (actions) {
 }
 
 #With Milestones
-generatedfFilesMilestones <- function (actions, dfMilestones) {
+generatedfActionsMilestones <- function (actions, dfMilestones) {
   
   dfActionsSorted <- actions
   
@@ -336,8 +346,26 @@ generatedfFilesMilestones <- function (actions, dfMilestones) {
   }
   colnames(dfRegExpsPerElement)<-milestones
   
-  dfActionsSortedMilestones<-cbind(dfActionsSorted,dfRegExpsPerElement)
+  cbind(dfActionsSorted,dfRegExpsPerElement)
+}  
   
+
+generatedfFilesMilestones <- function (actionsMilestones, dfMilestones) {
+  
+  dfActionsSortedMilestones<-actionsMilestones
+  
+  milestones <- as.character(dfMilestones$milNames)
+  regExps <- as.character(dfMilestones$regExps)
+  postLogicEval <- as.character(dfMilestones$logTests)
+  
+  milestonesRegExp <- regExps
+  milestonesName <- milestones
+  milestonesLogEv <- postLogicEval
+  
+  milestones <- regExps
+  milestones[1:length(milestonesName)]<-milestonesName
+  postLogicEval<-rep("",length(regExps))
+  postLogicEval[1:length(milestonesLogEv)]<-milestonesLogEv
   
   # Muntatge de dfSessions
   vecSessions<-unique(as.character(dfActionsSortedMilestones[,"session"]))
@@ -484,9 +512,10 @@ generatedfFilesMilestones <- function (actions, dfMilestones) {
   return(dfFiles)
 }
 
-generatedfUsersMilestones <- function (actions,dfMilestones) {
+generatedfUsersMilestones <- function (actionsMilestones,dfMilestones) {
   
-  dfActionsSorted <- actions
+  dfActionsSortedMilestones<-actionsMilestones
+  
   milestones <- as.character(dfMilestones$milNames)
   regExps <- as.character(dfMilestones$regExps)
   postLogicEval <- as.character(dfMilestones$logTests)
@@ -495,56 +524,10 @@ generatedfUsersMilestones <- function (actions,dfMilestones) {
   milestonesName <- milestones
   milestonesLogEv <- postLogicEval
   
-  
-  milestones<-regExps
+  milestones <- regExps
   milestones[1:length(milestonesName)]<-milestonesName
   postLogicEval<-rep("",length(regExps))
   postLogicEval[1:length(milestonesLogEv)]<-milestonesLogEv
-  
-  # Milestones per accio
-  testVector<-as.character(dfActionsSorted$xml_cum)
-  regExps<-paste("(?=",regExps,")",sep="")
-  
-  dfRegExpsPerElement<-data.frame()
-  for(i in 1:length(testVector)) {
-    lisRegExpsElement<-logical(length(regExps))
-    for (j in 1:length(regExps)) {
-      regexecResults<-gregexpr(regExps[j],testVector[i],perl=TRUE)
-      
-      evaluated<-FALSE
-      for(k in 1:length(regexecResults[[1]])) {
-        result<-regexecResults[[1]]
-        if(result[1]!=-1 & length(result)>0) {
-          m<-NULL
-          
-          if(!is.null(attr(regexecResults[[1]],"capture.start"))) {
-            
-            result<-as.vector(attr(regexecResults[[1]],"capture.start")[k,])
-            attr(result,"match.length")<-as.vector(attr(regexecResults[[1]],"capture.length")[k,])
-            
-            for(l in 1:length(result)) {
-              posMatch<-result[l]
-              lenMatch<-attr(result,"match.length")[l]
-              m<-c(m,substr(as.character(testVector[i]),
-                            posMatch,posMatch+lenMatch-1))
-            }
-          }
-        }
-        evaluated<-evaluated | (postLogicEval[j]=="" & result[1]!=-1)
-        if(postLogicEval[j]!="" & result[1]!=-1) {
-          evaluated<-evaluated | as.logical(eval(parse(text=postLogicEval[j])))
-        }			
-      }
-      lisRegExpsElement[j]<-evaluated
-    }
-    dfRegExpsPerElement<-rbind(dfRegExpsPerElement,lisRegExpsElement)
-  }
-  
-  colnames(dfRegExpsPerElement)<-milestones
-  
-  dfActionsSortedMilestones<-cbind(dfActionsSorted,dfRegExpsPerElement)
-  #str(dfActionsSortedMilestones)
-  
   
   # Muntatge de dfSessions
   vecSessions<-unique(as.character(dfActionsSortedMilestones[,"session"]))
@@ -690,7 +673,6 @@ generatedfUsersMilestones <- function (actions,dfMilestones) {
   rownames(dfUsers)<-1:nrow(dfUsers)
   colnames(dfUsers)<-c("user",milestones)
   
-  dfUsers <<- dfUsers
   return(dfUsers)
 }
 
@@ -717,6 +699,41 @@ generatedStudentsMilestonesEv <- function (studentsObsMilestones,dfMilestonesEv)
   df
 }
 
+generatedfObs <- function(actionsMilestones, milestones) {
+  selCols <- c("filename","user","number","time","diff_time_cum","diff_time_cum_real")[
+    c("filename","user","number","time","diff_time_cum","diff_time_cum_real") %in%
+    colnames(actionsMilestones)] 
+  actionsMilestones[
+    apply(actionsMilestones[,milestones],1,sum)>0,
+    c(selCols,milestones)]
+}
+
+
+#COLORS
+getdfOIColors <- function(dfObsItems, dfEVMil) {
+  if(is.null(dfObsItems)) return(NULL)
+  
+  dfObsItemsEvMilest<-data.frame(item=as.character(dfObsItems$milNames),
+                                 stringsAsFactors = FALSE)
+  if(is.null(dfEVMil)) {
+    dfObsItemsEvMilest$evMil <- dfObsItemsEvMilest$item
+  } else {
+    dfObsItemsEvMilest$evMil <- 
+      sapply(dfObsItemsEvMilest$item,
+             function(x) {paste(ifelse(grepl(x,dfEVMil$evTests),
+                                       as.character(dfEVMil$milNames),""),collapse = "")})
+  }
+  
+  ncolors <- length(unique(dfObsItemsEvMilest$evMil[dfObsItemsEvMilest$evMil!=""]))
+  colorsMil <- rep(c(brewer.pal(9,"Set1"),brewer.pal(12,"Set3")),100)[1:ncolors]
+  if (ncolors!=length(unique(dfObsItemsEvMilest$evMil))) colorsMil <- c(colorsMil, "grey60")
+  
+  dfEvColor <- data.frame(evMil=unique(dfObsItemsEvMilest$evMil),colorMil=colorsMil)
+  dfObsItemsEvMilest <- merge(dfObsItemsEvMilest,dfEvColor,by="evMil") %>% arrange(item)
+  dfObsItemsEvMilest$colorInk <- ifelse(sapply(dfObsItemsEvMilest$colorMil, function(x) mean(ColToRgb(x))/255)<.5,
+                                         "white","black")
+  dfObsItemsEvMilest
+}
 
 #GRAPHS.
 #without milestones.
