@@ -1,3 +1,5 @@
+options(install.packages.check.source = "no")
+
 # Paquets a instal.lar/carregar
 pckgs<-c("shiny","shinyjs","shinythemes", "ggthemes","ggrepel",
          "igraph","scales","GGally","network","sna","DescTools",
