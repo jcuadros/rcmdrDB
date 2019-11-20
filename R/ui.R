@@ -12,6 +12,7 @@ for(pckg in pckgs2Install) {install.packages(pckg,
 for(pckg in pckgs2Load) {library(pckg,character.only = TRUE)}
 
 source("dashboard_functions.R")  
+##
 
 shinyUI(fluidPage(
   navbarPage("",
