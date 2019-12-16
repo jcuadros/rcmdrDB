@@ -841,7 +841,7 @@ drawCommandsWordCloud <- function(xmls) {
   if(is.null(xmls)) return(NULL)
   
   xmls <<- xmls
-  xmls1<-gsub("value='with(?:[(]|%28)[^,%]*(?:,|%2C)%20","value='",xmls)
+  xmls1<-gsub("value='with(?:[(]|%28)[^,%]*(?:,|%2C)(?:%20|%20%28)","value='",xmls)
   regs<-regexec("name='Command' value='([a-zA-Z.0-9_]*)(?:[(]|%28)",xmls1)
   start<-sapply(regs,function(x){x[2]})
   length<-sapply(regs,function(x){attr(x,"match.length")[2]})
