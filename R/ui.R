@@ -160,6 +160,18 @@ shinyUI(fluidPage(
                         widths = c(2, 10)
                       )
              ),
+             tabPanel("Commands",
+                      navlistPanel(
+                        tabPanel("Observation Items Sequence",
+                                 fluidPage(
+                                   verticalLayout(
+                                     tableOutput("commandCluster")
+                                   )
+                                 )
+                        ),
+                        widths = c(2, 10)
+                      )
+             ),
              tabPanel("Student-specific Results",
                       htmlOutput("selectStudent"),
                       navlistPanel(
