@@ -452,6 +452,26 @@ shinyServer(function(input, output, session) {
       return (paste("Student Id:",response[1]))
   })
   
+  #Commands
+  output$commandCluster <- renderTable(
+    {
+      #X <- dfActionsMilestones()
+      #input$evMilestonesImport
+      evFile <- input$evMilestonesImport
+      evFile <- read.table(evFile$datapath, header=TRUE)
+
+      X <- obtainObsAndFormatTime(dfActionsMilestones())
+      X <- insertEvMilestonesToCmd(X,evFile)
+      X <- mySelector(X)
+  
+      
+      
+     
+      
+      return(X)
+    }
+  )
+  
   #Student-specific
   output$selectStudent <- renderUI({
     if(is.null(dfStudents())) 

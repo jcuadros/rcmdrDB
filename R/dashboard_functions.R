@@ -918,3 +918,214 @@ nActVStoTVSGrade <- function (dfStudents=NULL, dfStudentsMilestones=NULL, id=NUL
     labs(x = "Time on Task", y = "Number of Actions") + scale_color_gradientn(
       colors=c("red4","red","white","green","forestgreen"),values=c(0,.4,.5,.6,1))+theme_bw()
 }
+
+dhms <- function(t){
+  paste(formatC(t %/% (60*60) %% 24, width = 2, format = "d", flag = "0")
+        ,formatC(t %/% 60 %% 60, width = 2, format = "d", flag = "0")
+        ,formatC(t %% 60, width = 2, format = "d", flag = "0")
+        ,sep = ":"
+  )
+  
+}
+
+obtainObsAndFormatTime <- function(df){
+  
+  df$results<-c() 
+  df<-within(df, rm(number))
+  for(i in (1:nrow(df))){
+    df$results[i] <- paste((colnames(df)[which(df[i,1:(ncol(df)-1)] ==  "TRUE")]),collapse = ",")
+  }
+  
+  df$time<-as.POSIXct(strptime(df$time,format="%Y%m%d%H%M%S"))
+  df$Date<-as.Date(df$time)
+  df$diff_time_cum<-dhms(df$diff_time_cum)
+  df<-df[c("filename","xml","diff_time_cum","results")]
+  colnames(df)[3] <- "time"
+  df$results <- ifelse(df$results == "", NA , df$results)
+  return(df)
+}
+
+insertEvMilestonesToCmd <- function (df,Evs){
+  
+  Evs[] <- lapply(Evs, gsub, pattern='om', replacement='')
+  Evs$evTests<-gsub("[][]|['']", "", Evs$evTests)
+  
+  
+  df$EvMilestone<- NA
+  
+  for (x in c(1:nrow(Evs)) ){
+    index1<-grepl(Evs$evTests[x], df$results,useBytes = TRUE)
+    
+    for (y in c(1:length(index1))){
+      if(index1[y] == TRUE){
+        df$EvMilestone[y]<-Evs$milNames[x]
+      }
+    }
+  }
+  return(df)
+}
+
+mySelector <- function(dfActionsSorted){
+  xmls<-dfActionsSorted$xml
+  xmls <<- xmls
+  
+  xmls1<-gsub("value='with(?:[(]|%28)[^,%]*(?:,|%2C)(?:%20|%20%28)","value='",xmls)
+  xmls1<-gsub("value='[^local](.*?)%3C\\-%20","value='",xmls1)
+  
+  df<-dfActionsSorted
+  xmls <- as.character(df$xml)
+  regs<-regexec("name='Command' value='([^']*?)[']",xmls)
+  start<-sapply(regs,function(x){x[2]})
+  length<-sapply(regs,function(x){attr(x,"match.length")[2]})
+  cmd<-sapply(substr(xmls,start,start+length-1),function(x) {URLdecode(x)})
+  
+  
+  #------------------------Obtener COLNAMES-------------------------------
+  
+  regs<-regexec("name='Result' value='([^']*?)[']",as.character(df$xml))
+  start<-sapply(regs,function(x){x[2]})
+  length<-sapply(regs,function(x){attr(x,"match.length")[2]})
+  Result<-sapply(substr(as.character(df$xml),start,start+length-1),function(x) {URLdecode(x)})
+  
+  
+  
+  #--------------------------------------------------------------------------
+  
+  
+  regs2<-regexec("name='Command' value='([a-zA-Z.0-9_]*)(?:[(]|%28)",xmls1)
+  start2<-sapply(regs2,function(x){x[2]})
+  length2<-sapply(regs2,function(x){attr(x,"match.length")[2]})
+  func<-sapply(substr(xmls1,start2,start2+length2-1),function(x) {URLdecode(x)})
+  
+  nombres<-df$filename
+  
+  df <- data.frame(Name=df$filename,Command=cmd,time=df$time,func=func, ObsMilestone = dfActionsSorted$results, EvMilestone = dfActionsSorted$EvMilestone, 
+                   stringsAsFactors = FALSE)
+  df <- df[!df$Command=="NA",]
+  
+  
+  
+  dfResult<- data.frame(Name=nombres,Result=Result, stringsAsFactors = F)
+  dfResult <- dfResult[!dfResult$Result=="NA",]
+  
+  
+  #Buscar activeDataSet
+  
+  df<-df[order(df$Name, df$time),]
+  
+  df$ActiveDataSet<-NA
+  j <- NA 
+  
+  
+  for (x in c(2:nrow(df)) ){
+    
+    if (df$Name[x]==df$Name[x-1]){
+      if (grepl("ActiveDataSet",df$Command[x],fixed=T,useBytes = T)){
+        j <- substr(df$Command[x],attr(gregexpr(pattern ='ActiveDataSet=',df$Command[x])[[1]], 'match.length')+1,nchar(df$Command[x]))
+        df$ActiveDataSet[x] <- j
+      }
+      
+      
+    } else {
+      j <- NA
+    }
+  }
+  
+  dfDs<-df[c("Name","ActiveDataSet")]
+  dfDs <- dfDs[!is.na(dfDs$ActiveDataSet),]
+  dfDs <- unique(dfDs)
+  dfDs <- aggregate(dfDs$ActiveDataSet, list(dfDs$Name), paste, collapse="|")
+  colnames(dfDs)[1] <- "Name"
+  colnames(dfDs)[2] <- "Dataset"
+  df<-df<-df[, !(colnames(df) %in% c("ActiveDataSet"))]
+  
+  
+  #Buscar variable
+  
+  dfResult<-dfResult[order(dfResult$Name),]
+  
+  dfResult$Variable<-NA
+  chr <- NA
+  chr2 <- NA
+  
+  
+  for (x in c(2:nrow(df)) ){
+    
+    if (dfResult$Name[x]==dfResult$Name[x-1]){
+      if ( grepl("character",dfResult$Result[x-1],fixed=T)==T & is.na(gregexpr(pattern = "~~",dfResult$Result[x-1])[[1]][1])==F & is.na(gregexpr(pattern = "~~",dfResult$Result[x-1])[[1]][2])==F){
+        
+        chr<-dfResult$Result[x-1]
+        
+        chr2<-substr(chr,attr(gregexpr(pattern ='character~~ ',chr)[[1]], 'match.length') + gregexpr(pattern ='character~~ ',chr)[[1]][1],nchar(chr))
+        
+        dfResult$Variable[x-1] <- chr2
+      }
+      
+    } else {
+      chr <- NA
+      chr2 <- NA
+      
+    }
+  }
+  
+  dfResult<-dfResult[c("Name","Variable")]
+  dfResult <- dfResult[!is.na(dfResult$Variable),]
+  dfResult <- unique(dfResult)
+  dfResult$Variable <- str_replace_all(dfResult$Variable,"~~","|")
+  dfResult$Variable <- str_replace_all(dfResult$Variable,"\\|mean","")
+  dfResult <- aggregate(dfResult$Variable, list(dfResult$Name), paste, collapse="|")
+  colnames(dfResult)[1] <- "Name"
+  colnames(dfResult)[2] <- "Variable"
+  
+  
+  #merge
+  
+  df<-merge(df,dfDs,by="Name")
+  df<-merge(df,dfResult,by="Name")
+  
+  
+  
+  #New dataframe to be saved
+  
+  df<-df[order(df$Name,df$time),]
+  df<-df[, !(colnames(df) %in% c("time"))]
+  
+  df$isDataSet <- NA
+  
+  for (j in c(1:nrow(df))) {
+    
+    m <- match(T,gregexpr(pattern=df$Dataset[j],df$Command[j])[[1]]>0)
+    if (is.na(m)) {m <- 0}
+    
+    if (m > 0){
+      
+      for (i in c(1:length(as.list(strsplit(df$Dataset[j],"\\|"))[[1]]))) {
+        
+        b<- as.list(strsplit(df$Dataset[j], "\\|")[[1]])[[i]]
+        
+        if (grepl(b,df$Command[j],fixed=T, useBytes = TRUE)){  if (is.na(df$isDataSet[j])){df$isDataSet[j] <- b} else {df$isDataSet[j] <- paste(df$isDataSet[j],b)}}
+        
+      }
+    }
+  }
+  
+  df$isVar <- NA
+  
+  for (j in c(1:nrow(df))) {
+    
+    m <- match(T,gregexpr(pattern=df$Variable[j],df$Command[j])[[1]]>0)
+    if (is.na(m)) {m <- 0}
+    
+    if (m > 0){
+      
+      for (i in c(1:length(as.list(strsplit(df$Variable[j],"\\|"))[[1]]))) {
+        
+        b<- as.list(strsplit(df$Variable[j], "\\|")[[1]])[[i]]
+        
+        if (grepl(b,df$Command[j],fixed=T)){  if (is.na(df$isVar[j])){df$isVar[j] <- b} else {df$isVar[j] <- paste(df$isVar[j],b,sep='|')}}
+        
+      }
+    }
+  }
+  return(df)
+}
