@@ -965,7 +965,8 @@ insertEvMilestonesToCmd <- function (df,Evs){
   return(df)
 }
 
-mySelector <- function(dfActionsSorted){
+applyRegexAndObtainVariableDataframe <- function(dfActionsSorted) {
+  
   xmls<-dfActionsSorted$xml
   xmls <<- xmls
   
@@ -1007,9 +1008,14 @@ mySelector <- function(dfActionsSorted){
   
   dfResult<- data.frame(Name=nombres,Result=Result, stringsAsFactors = F)
   dfResult <- dfResult[!dfResult$Result=="NA",]
-  
-  
-  #Buscar activeDataSet
+  return(list(dfResult,df))
+}
+
+
+
+#Buscar activeDataSet
+
+obtainActiveDatasetAndallSelectedDatasets <- function(df) {
   
   df<-df[order(df$Name, df$time),]
   
@@ -1037,10 +1043,16 @@ mySelector <- function(dfActionsSorted){
   dfDs <- aggregate(dfDs$ActiveDataSet, list(dfDs$Name), paste, collapse="|")
   colnames(dfDs)[1] <- "Name"
   colnames(dfDs)[2] <- "Dataset"
-  df<-df<-df[, !(colnames(df) %in% c("ActiveDataSet"))]
+  df<-df[, !(colnames(df) %in% c("ActiveDataSet"))]
   
+  return(list(df,dfDs))
   
-  #Buscar variable
+}
+
+
+
+#Buscar variable
+searchVariable <- function(dfResult,dfDs,df){
   
   dfResult<-dfResult[order(dfResult$Name),]
   
@@ -1083,9 +1095,15 @@ mySelector <- function(dfActionsSorted){
   df<-merge(df,dfDs,by="Name")
   df<-merge(df,dfResult,by="Name")
   
-  
-  
-  #New dataframe to be saved
+  return(df)
+}
+
+
+
+
+#New dataframe to be saved
+
+obtainVariableAndDatasetUsedInEachCmd <- function(df){
   
   df<-df[order(df$Name,df$time),]
   df<-df[, !(colnames(df) %in% c("time"))]
@@ -1127,5 +1145,43 @@ mySelector <- function(dfActionsSorted){
       }
     }
   }
+  return(df)
+  
+}
+
+obtainVectorWithAllDatasetsUsedInActivity <- function(dfActionsSorted){
+  datasetVector <- dfActionsSorted[!(grepl("ActiveDataSet",dfActionsSorted$xml)==F),]
+  datasetVector <- datasetVector$xml
+  
+  datasetVector<- gsub(".*ActiveDataSet%3D","",datasetVector)
+  datasetVector<- gsub("\\'.*","",datasetVector)
+  datasetVector <- paste(unique(datasetVector),collapse="|")
+  return(datasetVector)
+  
+}
+
+addAsteriskToCommandsWithWrongDataset <- function(dfMilestones,datasetVector,df){
+  for (i in 1:nrow(df)){
+    a = 0
+    for (j in 1:nrow(dfMilestones)){
+      if(!is.na(df$isDataSet[i])){
+        if (grepl(df$isDataSet[i],dfMilestones$regExps[j])== F) {
+          a = a+ 1
+        }
+      }
+    }
+    if(a == nrow(dfMilestones)) {df$Command[i] <- paste("*",df$Command[i],sep="")}
+  }
+  return(df)
+}
+eraseDatasetNameAndVariableAndPathFromCmd <- function(df){
+  
+  df$Command<-gsub("with([^,]*),([^a-zA-Z]*)","with(", df$Command, perl=T)
+  df$Command<-gsub("showData([^,]*),([^a-zA-Z]*)","showData(", df$Command, perl=T)
+  df$Command<-gsub("load.*","load()", df$Command, perl=T)
+  df <- df[, !(colnames(df) %in% c("Dataset","Variable"))]
+  df$func <- ifelse(df$func == 'NA', NA, df$func)
+  df$Command <- ifelse(is.na(df$isVar)==F,str_replace_all(df$Command,df$isVar,""),df$Command) 
+  df$Command <- ifelse(is.na(df$isDataSet)==F,str_replace_all(df$Command,df$isDataSet,""),df$Command)
   return(df)
 }

@@ -462,12 +462,33 @@ shinyServer(function(input, output, session) {
 
       X <- obtainObsAndFormatTime(dfActionsMilestones())
       X <- insertEvMilestonesToCmd(X,evFile)
-      X <- mySelector(X)
+      
+      datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
+      X <- applyRegexAndObtainVariableDataframe(X)
+      df <- X[[2]]
+      dfResult <- X[[1]]
+      
+      X <- obtainActiveDatasetAndallSelectedDatasets(df)
+      df <- X[[1]]
+      dfDs <- X[[2]]
+      
+      X <- obtainVariableAndDatasetUsedInEachCmd(searchVariable(dfResult,dfDs,df))
+      
+      obFile <- input$obsMilestonesImport
+      obFile <- read.table(obFile$datapath, header=TRUE)
+      
+      X <- addAsteriskToCommandsWithWrongDataset(obFile,datasetVector,X)
+      
+      X <- eraseDatasetNameAndVariableAndPathFromCmd(X)
+      
+      X <- X[c("Name","isVar","isDataSet","func","Command","ObsMilestone","EvMilestone")]
+      
+      colnames(X)[2] <- "Variable"
+      colnames(X)[3] <- "DataSet"
+      colnames(X)[4] <- "Function"
+      colnames(X)[6] <- "obsMilestone"
+      colnames(X)[7] <- "evMilestone"
   
-      
-      
-     
-      
       return(X)
     }
   )
