@@ -3,7 +3,8 @@ options(install.packages.check.source = "no")
 # Paquets a instal.lar/carregar
 pckgs<-c("shiny","shinyjs","shinythemes", "ggthemes","ggrepel",
          "igraph","scales","GGally","network","sna","DescTools",
-         "tidyverse","XML","wordcloud","tm","slam","DT","Rcpp")
+         "tidyverse","XML","wordcloud","tm","slam","DT","Rcpp",
+         "ggdendro","grid")
 pckgs2Install<-pckgs[!(pckgs %in% library()$results[,1])]
 pckgs2Load<-pckgs[!(pckgs %in% (.packages()))]
 for(pckg in pckgs2Install) {install.packages(pckg,
@@ -165,7 +166,11 @@ shinyUI(fluidPage(
                         tabPanel("Observation Items Sequence",
                                  fluidPage(
                                    verticalLayout(
-                                     tableOutput("commandCluster")
+                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                                         selectInput("selector","Select one or more item",
+                                                                     c("Variable","DataSet","Function","Command"), multiple = TRUE, selected = "Command"),   
+                                                         div(plotOutput("commandCluster", height="auto"), align = "left"))
+  
                                    )
                                  )
                         ),

@@ -453,8 +453,7 @@ shinyServer(function(input, output, session) {
   })
   
   #Commands
-  output$commandCluster <- renderTable(
-    {
+  output$commandCluster <- renderPlot({
       #X <- dfActionsMilestones()
       #input$evMilestonesImport
       evFile <- input$evMilestonesImport
@@ -488,10 +487,91 @@ shinyServer(function(input, output, session) {
       colnames(X)[4] <- "Function"
       colnames(X)[6] <- "obsMilestone"
       colnames(X)[7] <- "evMilestone"
-  
-      return(X)
-    }
-  )
+      
+      X <- classifyMilestones(X)
+      X <- removeSummariesAndAnovasWithNAInDatasetColumn(X)
+      X <- addBracketsAndParenthesisToGiveSelectorFormat(X)
+      
+      #reactive para el selector
+      ddata <- reactive({
+        ddata <- c()
+        X$x <-do.call(paste, c(X[input$selector], sep=""))
+        
+        dfMilestone <- X[c(9,8)]
+        colnames(dfMilestone)[1] <- "Command"
+        dfMilestone$Command<-gsub("[\\n]","",dfMilestone$Command, perl=T)
+        dfMilestone$Command<-gsub("\\s+","",dfMilestone$Command, perl=T)
+        
+        X <- X[c(1,9,8)]
+        colnames(X)[1] <- "Name"
+        colnames(X)[2] <- "Command"
+        
+        #Creacion de la tabla de frecuencias
+        cmd_freq<-table(X$Command)
+        cmd_freq<-cmd_freq/sum(cmd_freq)
+        ddata <- createEditDistanceClusterFromFreqTable(cmd_freq)
+        ddata <- deleteLineBreakInLabelsDdata(ddata)
+        
+        #borrar los espacios en blanco de los commands
+        for (i in 1:length(ddata[["labels"]]$label)){
+          ddata[["labels"]]$label[i]<-gsub("[ X]+","", ddata[["labels"]]$label[i], perl=T)
+          dfMilestone$Command[i] <- gsub("[ X]+","", dfMilestone$Command[i], perl=T)
+        }
+        
+        ddata <- addWeightsToDendrogram(ddata,cmd_freq)
+        ddata <- aestheticsSymmetriseOfDendrogram(ddata)
+        ddata <- introduceMilestonesInDdata(dfMilestone, ddata)
+        ddata <- addSpaceToSeeInitialWeights(ddata)
+        ddata[["labels"]]$label<-ifelse(nchar(ddata[["labels"]]$label)>145,paste(strtrim(ddata[["labels"]]$label,145),"..."),ddata[["labels"]]$label)
+    
+        return(ddata)
+      })
+      
+      #ggplot
+      max <- max(ddata()[[1]]$y)
+      ord<-seq(-25,max+25-(max%%25),25)
+      ycolor<-ifelse(ord < 0, "white", "black")
+      
+      twenty_unique_colours<-c('#4363d8','#42d4f4',"#808000","#3cb44b","#f58231","#ff0000","#a000a0",
+                               '#a9a9a9', '#ffe119', '#f032e6', '#46f0f0', '#fabebe', '#bcf60c', '#e6beff',
+                               '#aaffc3', '#fffac8', '#800000', '#ffd8b1', '#911eb4', '#008080', '#000075', 
+                               '#808080', '#ffffff', '#000000')
+      
+      
+      numLeyenda<-length(unique(unlist(ddata()[["labels"]][c("Milestone")])))
+      
+      p <- ggplot() +
+        geom_segment(data=segment(ddata()), aes(x=x, y=y, xend=xend, yend=yend, size = ifelse(freq == 0, 0.1, freq * 100))) + 
+        geom_text(data=label(ddata()), aes(x=x, y=y, label=label, angle=-90, hjust=0,colour=Milestone), size=4, position = position_nudge(y = -5)) + 
+        scale_y_continuous(breaks=ord, expand=c(0.75, 0), limits = c(-300,max)) +
+        scale_x_continuous(expand=c(0.01, 0.01)) +
+        theme(panel.background=element_rect(fill="white"),
+              panel.grid=element_blank()) +
+        theme(axis.text.x = element_text(colour="white")) + 
+        theme(axis.ticks.x = element_line(colour="white")) +
+        xlab("") + ylab("height") +
+        theme(axis.text.y = element_text(colour = ycolor, angle = -90)) +
+        theme(axis.ticks.y = element_line(colour="white")) +
+        labs(size="freq (%)", y="") +
+        scale_size_identity(trans = "sqrt" , guide="legend", limits=c(1, 100 * max(ddata()[["segments"]][,"freq"]))) +
+        guides(size = guide_legend(direction = "horizontal", title.position = "right", title.theme = element_text(angle = -90),
+                                   label.position="bottom", label.hjust = 0.5, label.vjust = 0.5,
+                                   label.theme = element_text(angle = -90))) +
+        scale_colour_manual(values=twenty_unique_colours[1:numLeyenda], na.value ="#a9a9a9",
+                            guide = guide_legend(direction = "horizontal", title.position = "right", title.theme = element_text(angle = -90),
+                                                 label.position="bottom", label.hjust = 0.5, label.vjust = 0.5,
+                                                 label.theme = element_text(angle = -90))) + 
+        theme(legend.position = c(0.8, 0.9)) + 
+        labs(caption = "* todos aquellos comandos con un dataset erróneo", angle= -90) + 
+        theme(plot.caption = element_text(size=14,angle=-90, face="italic", color="black")) +
+        theme(axis.text.x=element_text(angle=180)) 
+      
+      
+      print(p, vp=viewport(angle=90))
+
+  }, height = function() {
+    session$clientData$output_commandCluster_width
+  })  
   
   #Student-specific
   output$selectStudent <- renderUI({

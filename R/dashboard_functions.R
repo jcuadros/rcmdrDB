@@ -1008,12 +1008,12 @@ applyRegexAndObtainVariableDataframe <- function(dfActionsSorted) {
   
   dfResult<- data.frame(Name=nombres,Result=Result, stringsAsFactors = F)
   dfResult <- dfResult[!dfResult$Result=="NA",]
-  return(list(dfResult,df))
+  return(list(dfResult,df)) #dfresult es un dataset que contiene la info para encontrar las variables
 }
 
 
 
-#Buscar activeDataSet
+#Buscar activeDataSet y todos los datasets usados por alumno
 
 obtainActiveDatasetAndallSelectedDatasets <- function(df) {
   
@@ -1045,13 +1045,11 @@ obtainActiveDatasetAndallSelectedDatasets <- function(df) {
   colnames(dfDs)[2] <- "Dataset"
   df<-df[, !(colnames(df) %in% c("ActiveDataSet"))]
   
-  return(list(df,dfDs))
+  return(list(df,dfDs)) #Return devuelve el df con una columna con el dataset del cmd y un dataframe con cada dataset usado por cada alumno
   
 }
 
 
-
-#Buscar variable
 searchVariable <- function(dfResult,dfDs,df){
   
   dfResult<-dfResult[order(dfResult$Name),]
@@ -1089,7 +1087,6 @@ searchVariable <- function(dfResult,dfDs,df){
   colnames(dfResult)[1] <- "Name"
   colnames(dfResult)[2] <- "Variable"
   
-  
   #merge
   
   df<-merge(df,dfDs,by="Name")
@@ -1098,10 +1095,6 @@ searchVariable <- function(dfResult,dfDs,df){
   return(df)
 }
 
-
-
-
-#New dataframe to be saved
 
 obtainVariableAndDatasetUsedInEachCmd <- function(df){
   
@@ -1184,4 +1177,140 @@ eraseDatasetNameAndVariableAndPathFromCmd <- function(df){
   df$Command <- ifelse(is.na(df$isVar)==F,str_replace_all(df$Command,df$isVar,""),df$Command) 
   df$Command <- ifelse(is.na(df$isDataSet)==F,str_replace_all(df$Command,df$isDataSet,""),df$Command)
   return(df)
+}
+
+#Agrupar milestones en tres grupos: 1) Obs que tienen Evs 2) Obs sin Evs 3) No Obs no Evs
+classifyMilestones <- function(df){
+  df$ms <- NA
+  df$ms <- ifelse(!is.na(df$obsMilestone) & !is.na(df$evMilestone),"Obs + Ev", df$ms)
+  df$ms <- ifelse(!is.na(df$obsMilestone) & is.na(df$evMilestone),"Obs", df$ms)
+  return(df)
+}
+
+#añadir brackets y parentesis segun formato (var1|var2)[dataset]function_cmd
+
+addBracketsAndParenthesisToGiveSelectorFormat <- function(df){
+  
+  df$DataSet <- paste('[',df$DataSet,sep='')
+  df$DataSet <- paste(df$DataSet,']',sep='')
+  df$DataSet <- ifelse(df$DataSet == '[]','',df$DataSet)
+  
+  df$Variable <- paste('(',df$Variable,sep='')
+  df$Variable <- paste(df$Variable,')',sep='')
+  df$Variable <- ifelse(df$Variable == '()','',df$Variable)
+  
+  
+  df$Function <- paste(df$Function,'_',sep='')
+  df$Function <- ifelse(df$Function == '_','',df$Function)
+  
+  return(df)
+}
+
+#eliminar summaries y anovas que tienen NA en la columna dataset
+
+removeSummariesAndAnovasWithNAInDatasetColumn <- function(df){
+  df <- df[!(df$Function == "summary" & is.na(df$DataSet)),]
+  df <- df[!(df$Function == "Anova" & is.na(df$DataSet)),]
+  
+  df$Variable <- ifelse(is.na(df$Variable),'',df$Variable)
+  df$DataSet <- ifelse(is.na(df$DataSet),'',df$DataSet)
+  df$Function <- ifelse(is.na(df$Function),'',df$Function)
+  return(df)
+}
+
+
+#Rellenar con espacios en blanco y hacer distance matrix + cluster para ggplot
+
+createEditDistanceClusterFromFreqTable <- function(cmd_freq){
+
+  long<-max(nchar(names(cmd_freq)))
+  for(i in 1:length(names(cmd_freq))) {
+    if (nchar(names(cmd_freq)[i])<long){
+      names(cmd_freq)[i]<-paste(names(cmd_freq)[i],strrep(" ", -1 + long - nchar(names(cmd_freq)[i])))
+    }
+  }
+  
+  d  <- adist(row.names(cmd_freq))
+  diag(d) <- NA
+  rownames(d) <- row.names(cmd_freq)
+  
+  hc <- hclust(as.dist(d))
+  dhc <- as.dendrogram(hc)
+  ddata <- dendro_data(hc, type = "rectangle")
+  
+  return(ddata)
+}
+
+
+
+#eliminar el \n que rompe la frase en dos en el eje
+
+deleteLineBreakInLabelsDdata <- function(ddata){
+
+  ddata[["labels"]]$label<-gsub("[\\n]","", ddata[["labels"]]$label, perl=T) 
+  return(ddata)
+}
+
+#weights iniciales (labels)
+
+addWeightsToDendrogram <- function(ddata,cmd_freq){
+
+  ddata[["segments"]]$freq<-0
+  ddata[["labels"]]$freq<-0
+  ddata[["segments"]]<- ddata[["segments"]][with(ddata[["segments"]], order(xend)), ] 
+  
+  names(cmd_freq)<-gsub("[ X]+","", names(cmd_freq), perl=T)
+  names(cmd_freq)<-gsub("[\\n]","", names(cmd_freq), perl=T)
+  df_freq<-as.data.frame(cmd_freq)
+  
+  for (i in 1:nrow(df_freq)) {
+    for (j in 1:nrow(ddata[["labels"]])){
+      if (df_freq[i,"Var1"] == ddata[["labels"]][j, "label"] ) {
+        ddata[["labels"]][j, "freq"] = df_freq[i,"Freq"]
+      }
+    }
+  }
+  
+  for (i in 1:nrow(ddata[["labels"]])) {
+    for (j in 1:nrow(ddata[["segments"]])) {
+      if ((ddata[["segments"]][j,"xend"] == ddata[["segments"]][j,"x"]) & (ddata[["segments"]][j,"x"] == ddata[["labels"]][i,"x"]) & (ddata[["segments"]][j,"yend"] == 0)){
+        ddata[["segments"]][j,"freq"]<-ddata[["labels"]][i,"freq"]
+      }
+    }
+  }
+return(ddata)
+}
+
+aestheticsSymmetriseOfDendrogram <- function(ddata){
+  
+  ddata[["segments"]]$x <- round(ddata[["segments"]]$x * 4) / 4
+  ddata[["segments"]]$xend <- round(ddata[["segments"]]$xend * 4) / 4
+  ddata[["segments"]]$y <- round(ddata[["segments"]]$y * 4) / 4
+  ddata[["segments"]]$yend <- round(ddata[["segments"]]$yend * 4) / 4
+  return(ddata)
+}
+
+introduceMilestonesInDdata <- function(dfMilestone,ddata){
+  
+  ddata[["labels"]]$Milestone <- NA
+  
+  for (i in 1:nrow(dfMilestone)){
+    for (j in 1:nrow(ddata[["labels"]])){
+      if (dfMilestone$Command[i] == ddata[["labels"]]$label[j]) {
+        ddata[["labels"]]$Milestone[j] <- dfMilestone$ms[i] 
+      }
+    }
+  }
+  
+  return(ddata)
+}
+
+#añadir espacio para ver el grosor de los segmentos más cortos
+addSpaceToSeeInitialWeights <- function(ddata){
+  
+  ddata[["segments"]]$x <- ifelse(ddata[["segments"]]$x == 0, -5 , ddata[["segments"]]$x)
+  ddata[["segments"]]$xend <- ifelse(ddata[["segments"]]$xend == 0, -5 , ddata[["segments"]]$xend)
+  ddata[["segments"]]$xy<- ifelse(ddata[["segments"]]$y == 0, -5 , ddata[["segments"]]$y)
+  ddata[["segments"]]$yend <- ifelse(ddata[["segments"]]$yend == 0, -5 , ddata[["segments"]]$yend)
+  return(ddata)
 }
