@@ -595,8 +595,68 @@ shinyServer(function(input, output, session) {
     session$clientData$output_cmdFunctionsVSTime_width/2
   })
   
+  output$cmdFunctionsSequence <- renderPlot ({
+    
+    evFile <- input$evMilestonesImport
+    evFile <- read.table(evFile$datapath, header=TRUE)
+    
+    X <- obtainObsAndFormatTime(dfActionsMilestones())
+    X <- insertEvMilestonesToCmd(X,evFile)
+    
+    datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
+    X <- applyRegexAndObtainVariableDataframe(X)
+    df <- X[[2]]
+    df <- df[,c("Name","Command","time","func")]
+    df<-df[!(df$func == "NA"),]
+    df <- classifyFunctionsByCategory(df)
+    df <- createCountColumnAscending(df)
+    df$time <- as.POSIXct(df$time, format ='%H:%M:%OS')
+    df<-df[order(df$Name, df$time),]
+    
+    myInput <- reactive({
+      
+      doWe <- F
+      selectedFunc <- NA
+      
+      
+      if (input$chosenFunc == "Anova"){
+        selectedFunc <- "A"
+        doWe <- T
+      } else if (input$chosenFunc == "showData"){
+        selectedFunc <- "D"
+        doWe <- T
+      } else if (input$chosenFunc == "Load"){
+        selectedFunc <- "L"
+        doWe <- T
+      } else if (input$chosenFunc == "Plot"){
+        selectedFunc <- "P"
+        doWe <- T
+      } else if (input$chosenFunc == "Summary"){
+        selectedFunc <- "S"
+        doWe <- T
+      } else if (input$chosenFunc == "Test"){
+        selectedFunc <- "T"
+        doWe <- T
+      } else if (input$chosenFunc == "None"){
+        doWe <- F
+      }
+      
+      df <- sortDataframeByCentringOptionsChosen(df, selectedFunc, input$firstOrLast, doWe)
+      
+      return(df)
+      
+      
+    })
+    
+    df <- myInput()
+    df <- plotGroupOfFunctionsSequence(df)
+    return(print(df))
+    
+  }, height = function() {
+    session$clientData$output_cmdFunctionsSequence_width/2
+  })
   
-  
+
   
   #Student-specific
   output$selectStudent <- renderUI({

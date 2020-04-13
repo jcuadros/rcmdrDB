@@ -1419,3 +1419,82 @@ plotGroupOfFunctionsVSTime <- function(df){
                     segment.alpha = 0) 
   return(p)
 }
+
+`%+=%` = function(e1,e2) eval.parent(substitute(e1 <- e1 + e2))
+
+#ordenar el dataframe según la función que quiera usarse para centrar el plot. Entries = (dataframe, sigla de la función escogida, Centrar en la primera o en la última, input de centrar = TRUE)
+sortDataframeByCentringOptionsChosen <- function(df,chooseFuncToCentre,firstOrLast,centreTrue){
+  
+  if(firstOrLast == "First"){headsAndTails <- T} else {headsAndTails <- F}
+  
+  if(centreTrue){
+    if(headsAndTails){
+      for(i in 1:length(unique(df$Name))){
+        
+        if (length(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)) == 0){
+          df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - (df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] + 1)
+          
+        } else {
+          df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - df[min(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)),"Count"]
+          
+        }
+      }
+      
+    } else {
+      
+      for(i in 1:length(unique(df$Name))){
+        
+        if (length(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)) == 0){
+          df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - (df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] + 1)
+          
+        } else {
+          df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - df[max(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)),"Count"]
+          
+        }
+      }
+      
+      
+    }
+    
+    
+  }
+  return(df)
+}
+
+
+plotGroupOfFunctionsSequence <- function(df){
+  indice<-df
+  indice<-aggregate(indice$Count, by = list(indice$Name), max)
+  
+  newdata <- indice[order(indice$x, decreasing=TRUE),] #Creciente o decreciente
+  newdata<-t(newdata[c(1)])
+  
+  limites <- c("00:00:00","1:45:00")
+  limites <- as.POSIXct(limites, format ='%H:%M:%OS')
+  
+  desired_breaks<-seq(
+    from=as.POSIXct(limites[1],"%H:%M", tz="Europe/Madrid"),
+    to=as.POSIXct(limites[2], "%H:%M", tz="Europe/Madrid"),
+    by="15 min"
+  )
+  
+  colfunc <- colorRampPalette(c("brown", "white"))
+  
+  twenty_unique_colours<-c('#a9a9a9','#42d4f4',"#ffe119","#3cb44b","#f58231","#ff0000","#72399d",
+                           '#46f0f0', '#4363d8', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff',
+                           '#911eb4', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', 
+                           '#808080', '#ffffff', '#000000')
+  
+  
+  df$sigla <- factor(df$sigla, levels = c("O", "A", "L","P","D","S","T"))
+  numLeyenda<-length(unique(unlist(df[c("sigla")])))
+  
+  p <- ggplot(data=df,aes(x=Count,y=Name,fill=sigla,label=sigla))+geom_tile(width=.9, height=.8,  alpha=.9,color="black")+
+    theme_classic() +
+    ylim(newdata) + theme(legend.spacing.y = unit(0.5, 'cm')) +
+    scale_fill_manual(values=twenty_unique_colours[1:numLeyenda],  name = "Legend", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
+    geom_text(size=3.3, label=df$sigla)
+  
+  return(p)
+  
+}

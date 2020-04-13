@@ -182,6 +182,19 @@ shinyUI(fluidPage(
                                    )
                                  )
                         ),
+                        tabPanel("Command Group of Functions Sequence",
+                                 fluidPage(
+                                   verticalLayout(
+                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                            div(selectInput("chosenFunc","Select one function to centre the plot with",
+                                                            c("None","Anova","showData","Load","Plot","Summary","Test"), multiple = F),
+                                                selectInput("firstOrLast","Choose whether to centre it in the first or last appereance",
+                                                            c("First","Last"), multiple = F),
+                                                plotOutput("cmdFunctionsSequence", height="auto"), align = "left"))
+                                     
+                                   )
+                                 )
+                        ),
                         widths = c(2, 10)
                       )
                       
