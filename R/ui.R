@@ -163,19 +163,28 @@ shinyUI(fluidPage(
              ),
              tabPanel("Commands",
                       navlistPanel(
-                        tabPanel("Observation Items Sequence",
+                        tabPanel("Command Analysis Cluster",
                                  fluidPage(
                                    verticalLayout(
                                      column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
-                                                         selectInput("selector","Select one or more item",
-                                                                     c("Variable","DataSet","Function","Command"), multiple = TRUE, selected = "Command"),   
-                                                         div(plotOutput("commandCluster", height="auto"), align = "left"))
+                                                         div(selectInput("selector","Select one or more items",
+                                                                         c("Variable","DataSet","Function","Command"), multiple = TRUE, selected = "Command"),
+                                                           plotOutput("commandCluster", height="auto"), align = "left"))
   
+                                   )
+                                 )
+                        ),
+                        tabPanel("Command Group of Functions over Time",
+                                 fluidPage(
+                                   verticalLayout(
+                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                            div(plotOutput("cmdFunctionsVSTime", height= "auto"), align = "left"))
                                    )
                                  )
                         ),
                         widths = c(2, 10)
                       )
+                      
              ),
              tabPanel("Student-specific Results",
                       htmlOutput("selectStudent"),

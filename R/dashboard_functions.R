@@ -1314,3 +1314,108 @@ addSpaceToSeeInitialWeights <- function(ddata){
   ddata[["segments"]]$yend <- ifelse(ddata[["segments"]]$yend == 0, -5 , ddata[["segments"]]$yend)
   return(ddata)
 }
+
+twenty_unique_colours<- function(){
+  
+  a <- c('#4363d8','#42d4f4',"#808000","#3cb44b","#f58231","#ff0000","#a000a0",
+                         '#a9a9a9', '#ffe119', '#f032e6', '#46f0f0', '#fabebe', '#bcf60c', '#e6beff',
+                         '#aaffc3', '#fffac8', '#800000', '#ffd8b1', '#911eb4', '#008080', '#000075', 
+                          '#808080', '#ffffff', '#000000')
+  return(a)
+}
+
+#dataset with structure c("Name","Command","time","func")
+classifyFunctionsByCategory <- function(df){
+  df$funcGroup <- "Otros"
+  df$sigla <- "O"
+  
+  #Plot
+  df$funcGroup <- ifelse(((df$func %in% c("Boxplot","local","Barplot","Dotplot",
+                                          "indexplot","plotMeans","qqPlot","densityPlot"))),"plot", df$funcGroup)
+  df$sigla <- ifelse(df$funcGroup == "plot","P", df$sigla)
+  #anova
+  df$funcGroup <- ifelse(((df$func %in% c("lm","aov"))),"anova", df$funcGroup)
+  df$sigla <- ifelse(df$funcGroup == "anova","A", df$sigla)
+  #load
+  df$funcGroup <- ifelse(((df$func %in% c("load"))),"load", df$funcGroup)
+  df$sigla <- ifelse(df$funcGroup == "load","L", df$sigla)
+  #showData
+  df$funcGroup <- ifelse(((df$func %in% c("showData"))),"showData", df$funcGroup)
+  df$sigla <- ifelse(df$funcGroup == "showData","D", df$sigla)
+  #summary
+  df$funcGroup <- ifelse(((df$func %in% c("numSummary","summary"))),"summary", df$funcGroup)
+  df$sigla <- ifelse(df$funcGroup == "summary","S", df$sigla)
+  #test
+  df$funcGroup <- ifelse(((df$func %in% c("Hist","shapiro.test","bartlett.test","t.test","kruskal.test",
+                                          "wilcox.test"))),"test", df$funcGroup)
+  df$sigla <- ifelse(df$funcGroup == "test","T", df$sigla)
+  
+  return(df)
+}
+
+
+
+createCountColumnAscending <- function(df){
+  df<-df[order(df$Name, df$time),]
+  i=1
+  df$Count<- NA
+  df$Count[1]=1
+  cuanto<-nrow(df)-1
+  
+  for (x in c(2:nrow(df)) ){
+    
+    if (df$Name[x]==df$Name[x-1]){
+      i=i+1
+      df$Count[x]=i
+    } else {
+      i=1
+      df$Count[x]=i
+    }
+  }
+  return(df)
+}
+
+
+
+
+
+plotGroupOfFunctionsVSTime <- function(df){
+  #GGPLOT
+  df$time <- as.POSIXct(df$time, format ='%H:%M:%OS')
+  indice<-df
+  indice<-aggregate(indice$time, by = list(indice$Name), max)
+  newdata <- indice[order(indice$x, decreasing=FALSE),] #Creciente o decreciente
+  newdata<-t(newdata[c(1)])
+  df<-df[order(df$Name, df$time,decreasing=TRUE),]
+  
+  limites <- c("00:00:00","1:45:00")
+  limites <- as.POSIXct(limites, format ='%H:%M:%OS')
+  
+  desired_breaks<-seq(
+    from=as.POSIXct(limites[1],"%H:%M", tz="Europe/Madrid"),
+    to=as.POSIXct(limites[2], "%H:%M", tz="Europe/Madrid"),
+    by="15 min"
+  )
+  
+  colfunc <- colorRampPalette(c("brown", "white"))
+  
+  twenty_unique_colours<-c('#a9a9a9','#42d4f4',"#ffe119","#3cb44b","#f58231","#ff0000","#72399d",
+                           '#46f0f0', '#4363d8', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff',
+                           '#911eb4', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', 
+                           '#808080', '#ffffff', '#000000')
+  
+  
+  df$sigla <- factor(df$sigla, levels = c("O", "A", "L","P","D","S","T"))
+  
+  numLeyenda<-length(unique(unlist(df[c("sigla")])))
+  
+  p <- ggplot(data=df,aes(x=time,y=Name,fill=sigla))+geom_point(shape=25, size=5, alpha=.7)+
+    theme_classic() + scale_x_datetime(breaks =desired_breaks, 
+                                       limits = limites,labels = scales::date_format("%H:%M", tz = "Europe/Madrid")) +
+    geom_hline(yintercept=seq(1.5, length(unique(df$Name))-0.5, 1), lwd=.35, colour="black", linetype="dashed") +
+    ylim(newdata) + theme(legend.spacing.y = unit(0.5, 'cm'),legend.key = element_rect(size = 0, color = NA)) +
+    scale_fill_manual(values=twenty_unique_colours[1:numLeyenda], name = "Legend", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
+    geom_text_repel(size=2.6,label=df$sigla, direction="x",nudge_y = 0.25, vjust=0, force=0.01, box.padding = 0.05,
+                    segment.alpha = 0) 
+  return(p)
+}

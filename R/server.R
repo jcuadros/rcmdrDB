@@ -453,9 +453,9 @@ shinyServer(function(input, output, session) {
   })
   
   #Commands
+  
   output$commandCluster <- renderPlot({
-      #X <- dfActionsMilestones()
-      #input$evMilestonesImport
+
       evFile <- input$evMilestonesImport
       evFile <- read.table(evFile$datapath, header=TRUE)
 
@@ -532,10 +532,7 @@ shinyServer(function(input, output, session) {
       ord<-seq(-25,max+25-(max%%25),25)
       ycolor<-ifelse(ord < 0, "white", "black")
       
-      twenty_unique_colours<-c('#4363d8','#42d4f4',"#808000","#3cb44b","#f58231","#ff0000","#a000a0",
-                               '#a9a9a9', '#ffe119', '#f032e6', '#46f0f0', '#fabebe', '#bcf60c', '#e6beff',
-                               '#aaffc3', '#fffac8', '#800000', '#ffd8b1', '#911eb4', '#008080', '#000075', 
-                               '#808080', '#ffffff', '#000000')
+      twenty_unique_colours <- twenty_unique_colours()
       
       
       numLeyenda<-length(unique(unlist(ddata()[["labels"]][c("Milestone")])))
@@ -572,6 +569,34 @@ shinyServer(function(input, output, session) {
   }, height = function() {
     session$clientData$output_commandCluster_width
   })  
+  
+  #Command analysis group of functions sequence 
+  
+  output$cmdFunctionsVSTime <- renderPlot({
+    
+    evFile <- input$evMilestonesImport
+    evFile <- read.table(evFile$datapath, header=TRUE)
+    
+    X <- obtainObsAndFormatTime(dfActionsMilestones())
+    X <- insertEvMilestonesToCmd(X,evFile)
+    
+    datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
+    X <- applyRegexAndObtainVariableDataframe(X)
+    df <- X[[2]]
+    df <- df[,c("Name","Command","time","func")]
+    df<-df[!(df$func == "NA"),]
+    df <- classifyFunctionsByCategory(df)
+    df <- createCountColumnAscending(df)
+    p <- plotGroupOfFunctionsVSTime(df)
+    
+  return(print(p))
+    
+  }, height = function() {
+    session$clientData$output_cmdFunctionsVSTime_width/2
+  })
+  
+  
+  
   
   #Student-specific
   output$selectStudent <- renderUI({
