@@ -473,11 +473,6 @@ shinyServer(function(input, output, session) {
       
       X <- obtainVariableAndDatasetUsedInEachCmd(searchVariable(dfResult,dfDs,df))
       
-      obFile <- input$obsMilestonesImport
-      obFile <- read.table(obFile$datapath, header=TRUE)
-      
-      X <- addAsteriskToCommandsWithWrongDataset(obFile,datasetVector,X)
-      
       X <- eraseDatasetNameAndVariableAndPathFromCmd(X)
       
       X <- X[c("Name","isVar","isDataSet","func","Command","ObsMilestone","EvMilestone")]
@@ -497,6 +492,11 @@ shinyServer(function(input, output, session) {
         ddata <- c()
         X$x <-do.call(paste, c(X[input$selector], sep=""))
         
+        obFile <- input$obsMilestonesImport
+        obFile <- read.table(obFile$datapath, header=TRUE)
+        X <- addAsteriskToCommandsWithWrongDataset(obFile,datasetVector, X)
+        
+        
         dfMilestone <- X[c(9,8)]
         colnames(dfMilestone)[1] <- "Command"
         dfMilestone$Command<-gsub("[\\n]","",dfMilestone$Command, perl=T)
@@ -505,6 +505,8 @@ shinyServer(function(input, output, session) {
         X <- X[c(1,9,8)]
         colnames(X)[1] <- "Name"
         colnames(X)[2] <- "Command"
+        
+      
         
         #Creacion de la tabla de frecuencias
         cmd_freq<-table(X$Command)

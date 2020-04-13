@@ -1157,16 +1157,17 @@ addAsteriskToCommandsWithWrongDataset <- function(dfMilestones,datasetVector,df)
   for (i in 1:nrow(df)){
     a = 0
     for (j in 1:nrow(dfMilestones)){
-      if(!is.na(df$isDataSet[i])){
-        if (grepl(df$isDataSet[i],dfMilestones$regExps[j])== F) {
-          a = a+ 1
-        }
+      if(df$DataSet[i] != ""){
+        if (grepl(substring(df$DataSet[i], 2, nchar(df$DataSet[i])-1),dfMilestones$regExps[j])== F) {
+          a = a + 1
+        } 
       }
     }
-    if(a == nrow(dfMilestones)) {df$Command[i] <- paste("*",df$Command[i],sep="")}
+    if(a == nrow(dfMilestones)) {df$x[i] <- paste("*",df$x[i],sep="")}
   }
   return(df)
 }
+
 eraseDatasetNameAndVariableAndPathFromCmd <- function(df){
   
   df$Command<-gsub("with([^,]*),([^a-zA-Z]*)","with(", df$Command, perl=T)
