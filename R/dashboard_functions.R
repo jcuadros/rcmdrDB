@@ -1432,10 +1432,12 @@ sortDataframeByCentringOptionsChosen <- function(df,chooseFuncToCentre,firstOrLa
       for(i in 1:length(unique(df$Name))){
         
         if (length(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)) == 0){
-          df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - (df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] + 1)
+          df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - 
+            (df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] + 1)
           
         } else {
-          df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - df[min(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)),"Count"]
+          df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - 
+            df[min(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)),"Count"]
           
         }
       }
@@ -1445,10 +1447,12 @@ sortDataframeByCentringOptionsChosen <- function(df,chooseFuncToCentre,firstOrLa
       for(i in 1:length(unique(df$Name))){
         
         if (length(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)) == 0){
-          df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - (df[head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] + 1)
+          df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - 
+            (df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] + 1)
           
         } else {
-          df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - df[max(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)),"Count"]
+          df[tail(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1):head(which(df$Name == unique(df$Name)[i], arr.ind = TRUE),n=1),"Count"] %+=% - 
+            df[max(which(df$sigla == chooseFuncToCentre & df$Name == unique(df$Name)[i], arr.ind = TRUE)),"Count"]
           
         }
       }
