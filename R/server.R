@@ -486,7 +486,7 @@ shinyServer(function(input, output, session) {
       X <- classifyMilestones(X)
       X <- removeSummariesAndAnovasWithNAInDatasetColumn(X)
       X <- addBracketsAndParenthesisToGiveSelectorFormat(X)
-      
+      X <- X[!(X$Command == "ActiveDataSet="),]
       #reactive para el selector
       ddata <- reactive({
         ddata <- c()
