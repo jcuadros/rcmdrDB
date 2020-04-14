@@ -1498,7 +1498,8 @@ plotGroupOfFunctionsSequence <- function(df){
     theme_classic() +
     ylim(newdata) + theme(legend.spacing.y = unit(0.5, 'cm')) +
     scale_fill_manual(values=twenty_unique_colours[1:numLeyenda],  name = "Legend", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
-    geom_text(size=3.3, label=df$sigla)
+    geom_text(size=3.3, label=df$sigla) +
+    labs(x = "relative position")
   
   return(p)
   
