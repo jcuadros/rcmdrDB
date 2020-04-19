@@ -1325,7 +1325,7 @@ twenty_unique_colours<- function(){
   return(a)
 }
 
-#dataset with structure c("Name","Command","time","func")
+#dataset with structure c("Name","Command","time","func") Only func is necessary
 classifyFunctionsByCategory <- function(df){
   df$funcGroup <- "Otros"
   df$sigla <- "O"
@@ -1503,4 +1503,49 @@ plotGroupOfFunctionsSequence <- function(df){
   
   return(p)
   
+}
+
+#dataset with structure c("Name","Command","sigla","func")
+aggregateCmdGroupOfFunctionsAndInitials <- function(X){
+  
+  dfCmd <- aggregate(X$Command, list(X$Name), paste, collapse="")
+  colnames(dfCmd)[1] <- "Name"
+  colnames(dfCmd)[2] <- "Command"
+  
+  dfFunc <- aggregate(X$func, list(X$Name), paste, collapse="")
+  colnames(dfFunc)[2] <- "Function"
+  
+  dfSigla <- aggregate(X$sigla, list(X$Name), paste, collapse="")
+  colnames(dfSigla)[2] <- "Initial"
+  
+  dfCmd$Function <- dfFunc$Function
+  dfCmd$Initial <- dfSigla$Initial
+  
+  return(dfCmd)
+}
+
+plotStudentCluster <- function(ddata){
+  max <- max(ddata[[1]]$y)
+  ord<-seq(0,roundUp10(max),roundUp10(max)/10)
+  ycolor<-ifelse(ord < 0, "white", "black")
+  
+  p <- ggplot() +
+    geom_segment(data=segment(ddata), aes(x=x, y=y, xend=xend, yend=yend)) + 
+    geom_text(data=label(ddata), aes(x=x, y=y, label=label, angle=-90, hjust=-0.1), size=4) + 
+    scale_y_continuous(breaks=ord, expand=c(0.25, 0), limits = c(-25,max(d))) +
+    scale_x_continuous(expand=c(0.01, 0.01)) +
+    theme(panel.background=element_rect(fill="white"),
+          panel.grid=element_blank()) +
+    theme(axis.text.x = element_text(colour="white")) + 
+    theme(axis.ticks.x = element_line(colour="white")) +
+    xlab("") + ylab("height") +
+    theme(axis.text.y = element_text(colour = ycolor)) +
+    theme(axis.ticks.y = element_line(colour="white"))
+  
+  return(p)
+}
+
+roundUp10 <- function(x,to=10)
+{
+  to*(x%/%to + as.logical(x%%to))
 }

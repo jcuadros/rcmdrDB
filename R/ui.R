@@ -174,6 +174,17 @@ shinyUI(fluidPage(
                                    )
                                  )
                         ),
+                        tabPanel("Student Cluster",
+                                 fluidPage(
+                                   verticalLayout(
+                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                            div(selectInput("studentSelector","Cluster by sequence of:",
+                                                            c("Commands","Group of functions","Initials")),
+                                                plotOutput("studentCluster",height="auto"), align = "left"))
+                                     
+                                   )
+                                 )
+                        ),
                         tabPanel("Command Group of Functions over Time",
                                  fluidPage(
                                    verticalLayout(

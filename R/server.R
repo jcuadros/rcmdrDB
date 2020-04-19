@@ -565,8 +565,8 @@ shinyServer(function(input, output, session) {
         theme(plot.caption = element_text(size=14,angle=-90, face="italic", color="black")) +
         theme(axis.text.x=element_text(angle=180)) 
       
-      
       print(p, vp=viewport(angle=90))
+
 
   }, height = function() {
     session$clientData$output_commandCluster_width
@@ -656,6 +656,78 @@ shinyServer(function(input, output, session) {
     
   }, height = function() {
     session$clientData$output_cmdFunctionsSequence_width/2
+  })
+  
+  output$studentCluster <- renderPlot({
+    evFile <- input$evMilestonesImport
+    evFile <- read.table(evFile$datapath, header=TRUE)
+    
+    X <- obtainObsAndFormatTime(dfActionsMilestones())
+    X <- insertEvMilestonesToCmd(X,evFile)
+    
+    datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
+    X <- applyRegexAndObtainVariableDataframe(X)
+    df <- X[[2]]
+    dfResult <- X[[1]]
+    
+    X <- obtainActiveDatasetAndallSelectedDatasets(df)
+    df <- X[[1]]
+    dfDs <- X[[2]]
+    
+    X <- obtainVariableAndDatasetUsedInEachCmd(searchVariable(dfResult,dfDs,df))
+    
+    X <- eraseDatasetNameAndVariableAndPathFromCmd(X)
+    
+    X <- X[c("Name","isVar","isDataSet","func","Command","ObsMilestone","EvMilestone")]
+    
+    colnames(X)[2] <- "Variable"
+    colnames(X)[3] <- "DataSet"
+    colnames(X)[4] <- "Function"
+    colnames(X)[6] <- "obsMilestone"
+    colnames(X)[7] <- "evMilestone"
+    X <- removeSummariesAndAnovasWithNAInDatasetColumn(X)
+    X <- X[!(X$Command == "ActiveDataset="),]
+    colnames(X)[4] <- "func"
+    X <- classifyFunctionsByCategory(X)
+    X <- aggregateCmdGroupOfFunctionsAndInitials(X)
+    
+    studentInput <- reactive({
+      
+      
+      if (input$studentSelector == "Commands"){
+        X <- X[c("Name","Command")]
+      } else if (input$studentSelector == "Group of functions"){
+        X <- X[c("Name","Function")]
+      } else if (input$studentSelector == "Initials"){
+        X <- X[c("Name","Initial")]
+      }
+      
+      colnames(X)[2] <- "Command"
+      cmd_freq<-X$Command
+      d  <- adist(cmd_freq)
+      diag(d) <- NA
+      rownames(d) <- X$Name
+
+      hc <- hclust(as.dist(d))
+      dhc <- as.dendrogram(hc)
+      ddata <- dendro_data(dhc, type = "rectangle")
+      
+      #eliminar el \n que rompe la frase en dos en el eje
+      ddata[["labels"]]$label<-gsub("[\\n]","", ddata[["labels"]]$label, perl=T)
+      
+      return(ddata)
+    })
+    
+    ddata <- studentInput()
+    X <- plotStudentCluster(ddata)
+    
+  
+    return(print(X))
+    
+    
+    
+  }, height = function() {
+    session$clientData$output_studentCluster_width/2
   })
   
 
