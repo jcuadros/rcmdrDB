@@ -704,26 +704,18 @@ shinyServer(function(input, output, session) {
       
       colnames(X)[2] <- "Command"
       cmd_freq<-X$Command
-      d  <- adist(cmd_freq)
+      d <- adist(cmd_freq)
       diag(d) <- NA
       rownames(d) <- X$Name
-
       hc <- hclust(as.dist(d))
       dhc <- as.dendrogram(hc)
       ddata <- dendro_data(dhc, type = "rectangle")
-      
-      #eliminar el \n que rompe la frase en dos en el eje
       ddata[["labels"]]$label<-gsub("[\\n]","", ddata[["labels"]]$label, perl=T)
-      
       return(ddata)
     })
     
-    ddata <- studentInput()
-    X <- plotStudentCluster(ddata)
-    
-  
+    X <- plotStudentCluster(studentInput())
     return(print(X))
-    
     
     
   }, height = function() {

@@ -1523,6 +1523,10 @@ aggregateCmdGroupOfFunctionsAndInitials <- function(X){
   
   return(dfCmd)
 }
+roundUp10 <- function(x,to=10)
+{
+  to*(x%/%to + as.logical(x%%to))
+}
 
 plotStudentCluster <- function(ddata){
   max <- max(ddata[[1]]$y)
@@ -1532,7 +1536,7 @@ plotStudentCluster <- function(ddata){
   p <- ggplot() +
     geom_segment(data=segment(ddata), aes(x=x, y=y, xend=xend, yend=yend)) + 
     geom_text(data=label(ddata), aes(x=x, y=y, label=label, angle=-90, hjust=-0.1), size=4) + 
-    scale_y_continuous(breaks=ord, expand=c(0.25, 0), limits = c(-25,max(d))) +
+    scale_y_continuous(breaks=ord, expand=c(0.25, 0), limits = c(-25,max)) +
     scale_x_continuous(expand=c(0.01, 0.01)) +
     theme(panel.background=element_rect(fill="white"),
           panel.grid=element_blank()) +
@@ -1543,9 +1547,4 @@ plotStudentCluster <- function(ddata){
     theme(axis.ticks.y = element_line(colour="white"))
   
   return(p)
-}
-
-roundUp10 <- function(x,to=10)
-{
-  to*(x%/%to + as.logical(x%%to))
 }
