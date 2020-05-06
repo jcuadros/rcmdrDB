@@ -1000,8 +1000,15 @@ applyRegexAndObtainVariableDataframe <- function(dfActionsSorted) {
   
   nombres<-df$filename
   
-  df <- data.frame(Name=df$filename,Command=cmd,time=df$time,func=func, ObsMilestone = dfActionsSorted$results, EvMilestone = dfActionsSorted$EvMilestone, 
+  if("results" %in% colnames(dfActionsSorted))
+  {
+    df <- data.frame(Name=df$filename,Command=cmd,time=df$time,func=func, ObsMilestone = dfActionsSorted$results, EvMilestone = dfActionsSorted$EvMilestone, 
+                     stringsAsFactors = FALSE)
+  } else {
+  df <- data.frame(Name=df$filename,Command=cmd,time=df$time,func=func, 
                    stringsAsFactors = FALSE)
+  }
+  
   df <- df[!df$Command=="NA",]
   
   

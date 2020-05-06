@@ -35,7 +35,7 @@ shinyServer(function(input, output, session) {
   
   dfActionsMilestones <- reactive({
     inFile <- input$obsMilestonesImport
-    if (is.null(inFile)) return(NULL) else
+    if (is.null(inFile)) return(dfActions()) else
       generatedfActionsMilestones(dfActions(), dfMilestonesDef())
   })
   
@@ -576,11 +576,14 @@ shinyServer(function(input, output, session) {
   
   output$cmdFunctionsVSTime <- renderPlot({
     
-    evFile <- input$evMilestonesImport
-    evFile <- read.table(evFile$datapath, header=TRUE)
+    evFile <- dfMilestonesEvDef()
+    X <- dfActionsMilestones()
     
-    X <- obtainObsAndFormatTime(dfActionsMilestones())
-    X <- insertEvMilestonesToCmd(X,evFile)
+    X$time<-as.POSIXct(strptime(X$time,format="%Y%m%d%H%M%S"))
+    X$Date<-as.Date(X$time)
+    X$diff_time_cum<-dhms(X$diff_time_cum)
+    X<-X[c("filename","xml","diff_time_cum")]
+    colnames(X)[3] <- "time"
     
     datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
     X <- applyRegexAndObtainVariableDataframe(X)
@@ -599,11 +602,13 @@ shinyServer(function(input, output, session) {
   
   output$cmdFunctionsSequence <- renderPlot ({
     
-    evFile <- input$evMilestonesImport
-    evFile <- read.table(evFile$datapath, header=TRUE)
-    
-    X <- obtainObsAndFormatTime(dfActionsMilestones())
-    X <- insertEvMilestonesToCmd(X,evFile)
+    evFile <- dfMilestonesEvDef()
+    X <- dfActionsMilestones()
+    X$time<-as.POSIXct(strptime(X$time,format="%Y%m%d%H%M%S"))
+    X$Date<-as.Date(X$time)
+    X$diff_time_cum<-dhms(X$diff_time_cum)
+    X<-X[c("filename","xml","diff_time_cum")]
+    colnames(X)[3] <- "time"
     
     datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
     X <- applyRegexAndObtainVariableDataframe(X)
@@ -659,11 +664,15 @@ shinyServer(function(input, output, session) {
   })
   
   output$studentCluster <- renderPlot({
-    evFile <- input$evMilestonesImport
-    evFile <- read.table(evFile$datapath, header=TRUE)
+ 
+    evFile <- dfMilestonesEvDef()
+    X <- dfActionsMilestones()
     
-    X <- obtainObsAndFormatTime(dfActionsMilestones())
-    X <- insertEvMilestonesToCmd(X,evFile)
+    X$time<-as.POSIXct(strptime(X$time,format="%Y%m%d%H%M%S"))
+    X$Date<-as.Date(X$time)
+    X$diff_time_cum<-dhms(X$diff_time_cum)
+    X<-X[c("filename","xml","diff_time_cum")]
+    colnames(X)[3] <- "time"
     
     datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
     X <- applyRegexAndObtainVariableDataframe(X)
@@ -678,18 +687,19 @@ shinyServer(function(input, output, session) {
     
     X <- eraseDatasetNameAndVariableAndPathFromCmd(X)
     
-    X <- X[c("Name","isVar","isDataSet","func","Command","ObsMilestone","EvMilestone")]
+    
+    X <- X[c("Name","isVar","isDataSet","func","Command")]
     
     colnames(X)[2] <- "Variable"
     colnames(X)[3] <- "DataSet"
     colnames(X)[4] <- "Function"
-    colnames(X)[6] <- "obsMilestone"
-    colnames(X)[7] <- "evMilestone"
+ 
     X <- removeSummariesAndAnovasWithNAInDatasetColumn(X)
-    X <- X[!(X$Command == "ActiveDataset="),]
+    X <- X[!(X$Command == "ActiveDataSet="),]
     colnames(X)[4] <- "func"
     X <- classifyFunctionsByCategory(X)
     X <- aggregateCmdGroupOfFunctionsAndInitials(X)
+    
     
     studentInput <- reactive({
       
