@@ -456,12 +456,13 @@ shinyServer(function(input, output, session) {
   
   output$commandCluster <- renderPlot({
 
-      evFile <- input$evMilestonesImport
-      evFile <- read.table(evFile$datapath, header=TRUE)
-
-      X <- obtainObsAndFormatTime(dfActionsMilestones())
+    
+    evFile <- dfMilestonesEvDef()
+      X <- dfActionsMilestones()
+      if(!("O01" %in% colnames(X))){X$O01 <- "FALSE"}
+      X <- obtainObsAndFormatTime(X)
       X <- insertEvMilestonesToCmd(X,evFile)
-      
+      save(X, file="myDEF.Rdata")
       datasetVector <- obtainVectorWithAllDatasetsUsedInActivity(X)
       X <- applyRegexAndObtainVariableDataframe(X)
       df <- X[[2]]
@@ -492,8 +493,7 @@ shinyServer(function(input, output, session) {
         ddata <- c()
         X$x <-do.call(paste, c(X[input$selector], sep=""))
         
-        obFile <- input$obsMilestonesImport
-        obFile <- read.table(obFile$datapath, header=TRUE)
+        obFile <- dfMilestonesDef()
         X <- addAsteriskToCommandsWithWrongDataset(obFile,datasetVector, X)
         
         

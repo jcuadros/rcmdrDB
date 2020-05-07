@@ -946,7 +946,9 @@ obtainObsAndFormatTime <- function(df){
 }
 
 insertEvMilestonesToCmd <- function (df,Evs){
-  
+  if(is.null(Evs)){
+    df$EvMilestone<- NA
+  } else {
   Evs[] <- lapply(Evs, gsub, pattern='om', replacement='')
   Evs$evTests<-gsub("[][]|['']", "", Evs$evTests)
   
@@ -961,6 +963,7 @@ insertEvMilestonesToCmd <- function (df,Evs){
         df$EvMilestone[y]<-Evs$milNames[x]
       }
     }
+  }
   }
   return(df)
 }
@@ -1161,17 +1164,21 @@ obtainVectorWithAllDatasetsUsedInActivity <- function(dfActionsSorted){
 }
 
 addAsteriskToCommandsWithWrongDataset <- function(dfMilestones,datasetVector,df){
-  for (i in 1:nrow(df)){
-    a = 0
-    for (j in 1:nrow(dfMilestones)){
-      if(df$DataSet[i] != ""){
-        if (grepl(substring(df$DataSet[i], 2, nchar(df$DataSet[i])-1),dfMilestones$regExps[j])== F) {
-          a = a + 1
-        } 
+  
+  if(!is.null(dfMilestones)){
+    for (i in 1:nrow(df)){
+      a = 0
+      for (j in 1:nrow(dfMilestones)){
+        if(df$DataSet[i] != ""){
+          if (grepl(substring(df$DataSet[i], 2, nchar(df$DataSet[i])-1),dfMilestones$regExps[j])== F) {
+            a = a + 1
+          } 
+        }
       }
+      if(a == nrow(dfMilestones)) {df$x[i] <- paste("*",df$x[i],sep="")}
     }
-    if(a == nrow(dfMilestones)) {df$x[i] <- paste("*",df$x[i],sep="")}
   }
+  
   return(df)
 }
 
