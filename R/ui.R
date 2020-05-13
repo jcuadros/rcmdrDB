@@ -18,7 +18,7 @@ source("dashboard_functions.R")
 shinyUI(fluidPage(
   navbarPage("",
              theme = shinytheme("cerulean"),
-             tabPanel("Data Input and Problem Definition",
+             tabPanel("Data Input",
                       fluidPage(
                         sidebarLayout(
                           sidebarPanel(
@@ -76,6 +76,11 @@ shinyUI(fluidPage(
                                    )
                                  )
                         ),
+                        widths = c(2, 10)
+                      )
+             ),
+             tabPanel("Instructions",
+                      navlistPanel(
                         tabPanel("Functions Wordcloud",
                                  fluidPage(
                                    verticalLayout(
@@ -83,8 +88,41 @@ shinyUI(fluidPage(
                                    )
                                  )
                         ),
+                        tabPanel("Command Analysis Cluster",
+                                 fluidPage(
+                                   verticalLayout(
+                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                            div(selectInput("selector","Select one or more items",
+                                                            c("Variable","DataSet","Function","Command"), multiple = TRUE, selected = "Command"),
+                                                plotOutput("commandCluster", height="auto"), align = "left"))
+                                     
+                                   )
+                                 )
+                        ),
+                        tabPanel("Command Group of Functions over Time",
+                                 fluidPage(
+                                   verticalLayout(
+                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                            div(plotOutput("cmdFunctionsVSTime", height= "auto"), align = "left"))
+                                   )
+                                 )
+                        ),
+                        tabPanel("Command Group of Functions Sequence",
+                                 fluidPage(
+                                   verticalLayout(
+                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                            div(selectInput("chosenFunc","Select one function to centre the plot with",
+                                                            c("None","Anova","showData","Load","Plot","Summary","Test"), multiple = F),
+                                                selectInput("firstOrLast","Choose whether to centre it in the first or last appereance",
+                                                            c("First","Last"), multiple = F),
+                                                plotOutput("cmdFunctionsSequence", height="auto"), align = "left"))
+                                     
+                                   )
+                                 )
+                        ),
                         widths = c(2, 10)
                       )
+                      
              ),
              tabPanel("Observation Items",
                       navlistPanel(
@@ -161,54 +199,16 @@ shinyUI(fluidPage(
                         widths = c(2, 10)
                       )
              ),
-             tabPanel("Commands",
-                      navlistPanel(
-                        tabPanel("Command Analysis Cluster",
-                                 fluidPage(
-                                   verticalLayout(
-                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
-                                                         div(selectInput("selector","Select one or more items",
-                                                                         c("Variable","DataSet","Function","Command"), multiple = TRUE, selected = "Command"),
-                                                           plotOutput("commandCluster", height="auto"), align = "left"))
-  
-                                   )
-                                 )
-                        ),
-                        tabPanel("Student Cluster",
-                                 fluidPage(
-                                   verticalLayout(
-                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
-                                            div(selectInput("studentSelector","Cluster by sequence of:",
-                                                            c("Commands","Group of functions","Initials")),
-                                                plotOutput("studentCluster", height="auto"), align = "left"))
-                                     
-                                   )
-                                 )
-                        ),
-                        tabPanel("Command Group of Functions over Time",
-                                 fluidPage(
-                                   verticalLayout(
-                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
-                                            div(plotOutput("cmdFunctionsVSTime", height= "auto"), align = "left"))
-                                   )
-                                 )
-                        ),
-                        tabPanel("Command Group of Functions Sequence",
-                                 fluidPage(
-                                   verticalLayout(
-                                     column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
-                                            div(selectInput("chosenFunc","Select one function to centre the plot with",
-                                                            c("None","Anova","showData","Load","Plot","Summary","Test"), multiple = F),
-                                                selectInput("firstOrLast","Choose whether to centre it in the first or last appereance",
-                                                            c("First","Last"), multiple = F),
-                                                plotOutput("cmdFunctionsSequence", height="auto"), align = "left"))
-                                     
-                                   )
-                                 )
-                        ),
-                        widths = c(2, 10)
+             tabPanel("Student Cluster",
+                      fluidPage(
+                        verticalLayout(
+                          column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
+                                 div(selectInput("studentSelector","Cluster by sequence of:",
+                                                 c("Commands","Group of functions","Initials")),
+                                     plotOutput("studentCluster", height="auto"), align = "left"))
+                          
+                        )
                       )
-                      
              ),
              tabPanel("Student-specific Results",
                       htmlOutput("selectStudent"),

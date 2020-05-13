@@ -458,6 +458,7 @@ shinyServer(function(input, output, session) {
 
     
     evFile <- dfMilestonesEvDef()
+    validate(need(input$logsImport != "", "Please insert log files!"))
       X <- dfActionsMilestones()
       if(!("O01" %in% colnames(X))){X$O01 <- "FALSE"}
       X <- obtainObsAndFormatTime(X)
@@ -577,6 +578,7 @@ shinyServer(function(input, output, session) {
   output$cmdFunctionsVSTime <- renderPlot({
     
     evFile <- dfMilestonesEvDef()
+    validate(need(input$logsImport != "", "Please insert log files!"))
     X <- dfActionsMilestones()
     
     X$time<-as.POSIXct(strptime(X$time,format="%Y%m%d%H%M%S"))
@@ -603,6 +605,7 @@ shinyServer(function(input, output, session) {
   output$cmdFunctionsSequence <- renderPlot ({
     
     evFile <- dfMilestonesEvDef()
+    validate(need(input$logsImport != "", "Please insert log files!"))
     X <- dfActionsMilestones()
     X$time<-as.POSIXct(strptime(X$time,format="%Y%m%d%H%M%S"))
     X$Date<-as.Date(X$time)
@@ -666,6 +669,7 @@ shinyServer(function(input, output, session) {
   output$studentCluster <- renderPlot({
  
     evFile <- dfMilestonesEvDef()
+    validate(need(input$logsImport != "", "Please insert log files!"))
     X <- dfActionsMilestones()
     
     X$time<-as.POSIXct(strptime(X$time,format="%Y%m%d%H%M%S"))
