@@ -25,7 +25,6 @@ shinyServer(function(input, output, session) {
     } else {
       generatedfFiles(dfActions())
     }})
-  
   #Yes Milestones
   dfMilestonesDef<-reactive({
     inFile <- input$obsMilestonesImport
@@ -38,6 +37,17 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile)) return(dfActions()) else
       generatedfActionsMilestones(dfActions(), dfMilestonesDef())
   })
+  
+  #Observable de obsmilestones
+  status <- reactiveVal()
+  observeEvent(input$obsMilestonesImport, {
+    myObservable <- input$obsMilestonesImport
+    if (!is.null(myObservable)) {   
+      status("(*): all those commands with a wrong dataset")
+    }
+  })
+  output$status <- renderText({status()})
+  
   
   dfStudentsMilestones <- reactive({
     inFile <- input$obsMilestonesImport
@@ -537,9 +547,8 @@ shinyServer(function(input, output, session) {
       
       twenty_unique_colours <- twenty_unique_colours()
       
-      
+
       numLeyenda<-length(unique(unlist(ddata()[["labels"]][c("Milestone")])))
-      
       p <- ggplot() +
         geom_segment(data=segment(ddata()), aes(x=x, y=y, xend=xend, yend=yend, size = ifelse(freq == 0, 0.1, freq * 100))) + 
         geom_text(data=label(ddata()), aes(x=x, y=y, label=label, angle=-90, hjust=0,colour=Milestone), size=4, position = position_nudge(y = -5)) + 
@@ -557,15 +566,12 @@ shinyServer(function(input, output, session) {
         guides(size = guide_legend(direction = "horizontal", title.position = "right", title.theme = element_text(angle = -90),
                                    label.position="bottom", label.hjust = 0.5, label.vjust = 0.5,
                                    label.theme = element_text(angle = -90))) +
-        scale_colour_manual(values=twenty_unique_colours[1:numLeyenda], na.value ="#a9a9a9",
+        scale_colour_manual(breaks=c(NA, "Obs + Ev", "Obs"),values=twenty_unique_colours[1:numLeyenda], na.value ="#383838",
                             guide = guide_legend(direction = "horizontal", title.position = "right", title.theme = element_text(angle = -90),
                                                  label.position="bottom", label.hjust = 0.5, label.vjust = 0.5,
                                                  label.theme = element_text(angle = -90))) + 
-        theme(legend.position = c(0.8, 0.9)) + 
-        labs(caption = "* todos aquellos comandos con un dataset erróneo", angle= -90) + 
-        theme(plot.caption = element_text(size=14,angle=-90, face="italic", color="black")) +
-        theme(axis.text.x=element_text(angle=180)) 
-      
+        theme(legend.position = c(0.7, 0.8)) + 
+        theme(axis.text.x=element_text(angle=180))
       print(p, vp=viewport(angle=90))
 
 

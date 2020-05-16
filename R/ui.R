@@ -22,9 +22,6 @@ shinyUI(fluidPage(
                       fluidPage(
                         sidebarLayout(
                           sidebarPanel(
-                            tags$b(h4("Problem/Class Description")),
-                            textInput("classDescription",NULL,value="(not specified)"),
-                            
                             tags$b(h4("Data Input")),
                             checkboxInput("checkbox", "Analyse per User (unselect to analyse per filename)", FALSE),
                             fileInput('logsImport', 'Log Files', multiple=TRUE),
@@ -94,6 +91,7 @@ shinyUI(fluidPage(
                                      column(width = 12, offset = 0, style='padding-left:0px; padding-right:0px; padding-top:5px; padding-bottom:5px',
                                             div(selectInput("selector","Select one or more items",
                                                             c("Variable","DataSet","Function","Command"), multiple = TRUE, selected = "Command"),
+                                                textOutput("status"),
                                                 plotOutput("commandCluster", height="auto"), align = "left"))
                                      
                                    )

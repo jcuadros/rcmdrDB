@@ -1332,7 +1332,7 @@ addSpaceToSeeInitialWeights <- function(ddata){
 
 twenty_unique_colours<- function(){
   
-  a <- c('#4363d8','#42d4f4',"#808000","#3cb44b","#f58231","#ff0000","#a000a0",
+  a <- c('#4363d8','#009933',"#808000","#3cb44b","#f58231","#ff0000","#a000a0",
                          '#a9a9a9', '#ffe119', '#f032e6', '#46f0f0', '#fabebe', '#bcf60c', '#e6beff',
                          '#aaffc3', '#fffac8', '#800000', '#ffd8b1', '#911eb4', '#008080', '#000075', 
                           '#808080', '#ffffff', '#000000')
@@ -1429,7 +1429,7 @@ plotGroupOfFunctionsVSTime <- function(df){
                                        limits = limites,labels = scales::date_format("%H:%M", tz = "Europe/Madrid")) +
     geom_hline(yintercept=seq(1.5, length(unique(df$Name))-0.5, 1), lwd=.35, colour="black", linetype="dashed") +
     ylim(newdata) + theme(legend.spacing.y = unit(0.5, 'cm'),legend.key = element_rect(size = 0, color = NA)) +
-    scale_fill_manual(values=twenty_unique_colours[1:numLeyenda], name = "Legend", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
+    scale_fill_manual(values=twenty_unique_colours[1:numLeyenda], name = "Function category", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
     geom_text_repel(size=2.6,label=df$sigla, direction="x",nudge_y = 0.25, vjust=0, force=0.01, box.padding = 0.05,
                     segment.alpha = 0) 
   return(p)
@@ -1511,7 +1511,7 @@ plotGroupOfFunctionsSequence <- function(df){
   p <- ggplot(data=df,aes(x=Count,y=Name,fill=sigla,label=sigla))+geom_tile(width=.9, height=.8,  alpha=.9,color="black")+
     theme_classic() +
     ylim(newdata) + theme(legend.spacing.y = unit(0.5, 'cm')) +
-    scale_fill_manual(values=twenty_unique_colours[1:numLeyenda],  name = "Legend", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
+    scale_fill_manual(values=twenty_unique_colours[1:numLeyenda],  name = "Function category", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
     geom_text(size=3.3, label=df$sigla) +
     labs(x = "relative position")
   
