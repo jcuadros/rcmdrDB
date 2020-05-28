@@ -1431,7 +1431,13 @@ plotGroupOfFunctionsVSTime <- function(df){
     ylim(newdata) + theme(legend.spacing.y = unit(0.5, 'cm'),legend.key = element_rect(size = 0, color = NA)) +
     scale_fill_manual(values=twenty_unique_colours[1:numLeyenda], name = "Function category", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
     geom_text_repel(size=2.6,label=df$sigla, direction="x",nudge_y = 0.25, vjust=0, force=0.01, box.padding = 0.05,
-                    segment.alpha = 0) 
+                    segment.alpha = 0) +
+    labs(x = "Time", y="Student id") +
+    theme(axis.text=element_text(size=14),
+          axis.title=element_text(size=16,face="bold"),
+          legend.title=element_text(size=16), 
+          legend.text=element_text(size=14),
+          legend.key.size = unit(1, "cm"))
   return(p)
 }
 
@@ -1513,7 +1519,12 @@ plotGroupOfFunctionsSequence <- function(df){
     ylim(newdata) + theme(legend.spacing.y = unit(0.5, 'cm')) +
     scale_fill_manual(values=twenty_unique_colours[1:numLeyenda],  name = "Function category", labels = c("O: Other", "A: Anova", "L: Load", "P: Plot", "D: showData","S: Summary","T: Test")) +
     geom_text(size=3.3, label=df$sigla) +
-    labs(x = "relative position")
+    labs(x = "relative position", y="Student id") +
+    theme(axis.text=element_text(size=14),
+          axis.title=element_text(size=16,face="bold"),
+          legend.title=element_text(size=16), 
+          legend.text=element_text(size=14),
+          legend.key.size = unit(1, "cm"))
   
   return(p)
   

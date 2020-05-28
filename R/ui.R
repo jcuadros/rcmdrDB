@@ -23,7 +23,7 @@ shinyUI(fluidPage(
                         sidebarLayout(
                           sidebarPanel(
                             tags$b(h4("Data Input")),
-                            #checkboxInput("checkbox", "Analyse per User (unselect to analyse per filename)", FALSE),
+                            checkboxInput("checkbox", "Analyse per User (unselect to analyse per filename)", FALSE),
                             fileInput('logsImport', 'Log Files', multiple=TRUE),
                             fileInput('obsMilestonesImport', 'Observation Items (optional)',
                                       accept=c('text/plain', '.txt')),
