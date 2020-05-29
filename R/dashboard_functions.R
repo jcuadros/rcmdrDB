@@ -1099,8 +1099,8 @@ searchVariable <- function(dfResult,dfDs,df){
   
   #merge
   
-  df<-merge(df,dfDs,by="Name")
-  df<-merge(df,dfResult,by="Name")
+  df<-merge(df,dfDs,by="Name", all=T)
+  df<-merge(df,dfResult,by="Name", all=T)
   
   return(df)
 }
@@ -1114,7 +1114,7 @@ obtainVariableAndDatasetUsedInEachCmd <- function(df){
   df$isDataSet <- NA
   
   for (j in c(1:nrow(df))) {
-    
+    if(!is.na(df$Dataset[j])){
     m <- match(T,gregexpr(pattern=df$Dataset[j],df$Command[j])[[1]]>0)
     if (is.na(m)) {m <- 0}
     
@@ -1129,11 +1129,11 @@ obtainVariableAndDatasetUsedInEachCmd <- function(df){
       }
     }
   }
-  
+  }
   df$isVar <- NA
   
   for (j in c(1:nrow(df))) {
-    
+    if(!is.na(df$Variable[j])){
     m <- match(T,gregexpr(pattern=df$Variable[j],df$Command[j])[[1]]>0)
     if (is.na(m)) {m <- 0}
     
@@ -1146,6 +1146,7 @@ obtainVariableAndDatasetUsedInEachCmd <- function(df){
         if (grepl(b,df$Command[j],fixed=T)){  if (is.na(df$isVar[j])){df$isVar[j] <- b} else {df$isVar[j] <- paste(df$isVar[j],b,sep='|')}}
         
       }
+    }
     }
   }
   return(df)
@@ -1387,6 +1388,7 @@ createCountColumnAscending <- function(df){
       df$Count[x]=i
     }
   }
+  df$Count <- df$Count - 1
   return(df)
 }
 
@@ -1560,7 +1562,7 @@ plotStudentCluster <- function(ddata){
   
   p <- ggplot() +
     geom_segment(data=segment(ddata), aes(x=x, y=y, xend=xend, yend=yend)) + 
-    geom_text(data=label(ddata), aes(x=x, y=y, label=label, angle=-90, hjust=-0.1), size=4) + 
+    geom_text(data=label(ddata), aes(x=x, y=y, label=label, angle=-90, hjust=-0.1), size=6) + 
     scale_y_continuous(breaks=ord, expand=c(0.25, 0), limits = c(-25,max)) +
     scale_x_continuous(expand=c(0.01, 0.01)) +
     theme(panel.background=element_rect(fill="white"),
@@ -1569,7 +1571,9 @@ plotStudentCluster <- function(ddata){
     theme(axis.ticks.x = element_line(colour="white")) +
     xlab("") + ylab("height") +
     theme(axis.text.y = element_text(colour = ycolor)) +
-    theme(axis.ticks.y = element_line(colour="white"))
+    theme(axis.ticks.y = element_line(colour="white")) + 
+    theme(axis.text=element_text(size=14),
+          axis.title=element_text(size=16,face="bold"))
   
   return(p)
 }

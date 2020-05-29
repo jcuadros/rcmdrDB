@@ -663,7 +663,7 @@ shinyServer(function(input, output, session) {
       
       
     })
-    
+      
     df <- myInput()
     df <- plotGroupOfFunctionsSequence(df)
     return(print(df))
@@ -677,7 +677,7 @@ shinyServer(function(input, output, session) {
     evFile <- dfMilestonesEvDef()
     validate(need(input$logsImport != "", "Please insert log files!"))
     X <- dfActionsMilestones()
-    
+
     X$time<-as.POSIXct(strptime(X$time,format="%Y%m%d%H%M%S"))
     X$Date<-as.Date(X$time)
     X$diff_time_cum<-dhms(X$diff_time_cum)
@@ -721,7 +721,7 @@ shinyServer(function(input, output, session) {
       } else if (input$studentSelector == "Initials"){
         X <- X[c("Name","Initial")]
       }
-      
+        
       colnames(X)[2] <- "Command"
       cmd_freq<-X$Command
       d <- adist(cmd_freq)
